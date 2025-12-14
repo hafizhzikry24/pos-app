@@ -7,10 +7,6 @@ import React, { useEffect } from 'react';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
-
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
   const { token, isLoading } = useAuth();
@@ -20,14 +16,12 @@ function RootLayoutNav() {
   useEffect(() => {
     if (isLoading) return;
 
-    const inTabsGroup = segments[0] === '(tabs)';
-
-    if (!token && inTabsGroup) {
-      // Redirect to login if not authenticated and trying to access tabs
+    if (!token && segments[0] !== 'login') {
+      // Redirect to login if not authenticated
       router.replace('/login');
     } else if (token && segments[0] === 'login') {
-      // Redirect to tabs if authenticated and on login page
-      router.replace('/(tabs)');
+      // Redirect to main POS screen if authenticated and on login page
+      router.replace('/');
     }
   }, [token, isLoading, segments]);
 
@@ -38,7 +32,7 @@ function RootLayoutNav() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>

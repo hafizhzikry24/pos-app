@@ -13,13 +13,13 @@ class Cashier extends Authenticatable
     use HasFactory, Notifiable, HasApiTokens, SoftDeletes;
 
     /*
-    * @var string
-    */
+     * @var string
+     */
     protected $table = 'cashiers';
 
     /*
-    * @var array
-    */
+     * @var array
+     */
     protected $fillable = [
         'name',
         'email',
@@ -28,19 +28,25 @@ class Cashier extends Authenticatable
         'phone',
         'address',
         'is_active',
+        'location_id',
     ];
 
+    public function location()
+    {
+        return $this->belongsTo(Location::class);
+    }
+
     /*
-    * @var array
-    */
+     * @var array
+     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
     /*
-    * @var array
-    */
+     * @var array
+     */
     protected function casts(): array
     {
         return [

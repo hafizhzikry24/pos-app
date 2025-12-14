@@ -1,14 +1,11 @@
-import axios from 'axios';
-import { environment } from '../../environment/environment-development';
+import axios from "axios";
 
 const api = axios.create({
-    baseURL: environment.apiUrl, // Adjust if backend runs on different port
+    baseURL: "http://localhost:8000/api",
     headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        "Content-Type": "application/json",
+        "Accept": "application/json",
     },
-    withCredentials: true,
-    withXSRFToken: true
 });
 
 api.interceptors.request.use((config) => {

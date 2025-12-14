@@ -29,6 +29,7 @@ class UpdateCashierRequest extends FormRequest
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:500',
             'is_active' => 'sometimes|boolean',
+            'location_id' => 'nullable|integer|exists:locations,id',
         ];
     }
 }

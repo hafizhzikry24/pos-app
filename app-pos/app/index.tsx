@@ -7,6 +7,7 @@ import { Item, itemService } from '@/services/itemService';
 import { useAuth } from '@/context/AuthContext';
 import Numpad from '@/components/Numpad';
 import Toast from '@/components/Toast';
+import { useRouter } from 'expo-router';
 
 export default function PosScreen() {
   const [items, setItems] = useState<Item[]>([]);
@@ -16,7 +17,8 @@ export default function PosScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'error' as const });
-  const { token } = useAuth();
+  const { token, logout } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     if (token) {
@@ -112,6 +114,17 @@ export default function PosScreen() {
     router.push({ pathname: "/modal", params: { total } });
   };
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.replace('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Force logout even if API call fails
+      router.replace('/login');
+    }
+  };
+
   const renderItem = ({ item }: { item: Item }) => (
     <TouchableOpacity style={styles.itemCard} onPress={() => addToCart(item)}>
       <View style={styles.itemIconPlaceholder}>
@@ -132,14 +145,19 @@ export default function PosScreen() {
       />
       {/* Left Side: Item Grid */}
       <View style={styles.leftPane}>
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={20} color="#666" style={{ marginRight: 8 }} />
-          <TextInput
-            placeholder="Search items..."
-            style={styles.searchInput}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
+        <View style={styles.header}>
+          <View style={styles.searchBar}>
+            <Ionicons name="search" size={20} color="#666" style={{ marginRight: 8 }} />
+            <TextInput
+              placeholder="Search items..."
+              style={styles.searchInput}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </View>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Ionicons name="log-out-outline" size={24} color="#dc2626" />
+          </TouchableOpacity>
         </View>
         <FlatList
           data={filteredItems}
@@ -233,13 +251,28 @@ const styles = StyleSheet.create({
     display: 'flex',
     flexDirection: 'column',
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 12,
+  },
   searchBar: {
+    flex: 1,
     flexDirection: 'row',
     backgroundColor: 'white',
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
-    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  logoutButton: {
+    backgroundColor: 'white',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: '#e5e7eb',
   },

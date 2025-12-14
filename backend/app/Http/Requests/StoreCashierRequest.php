@@ -28,6 +28,7 @@ class StoreCashierRequest extends FormRequest
             'store_id' => 'nullable|integer|exists:stores,id',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:500',
+            'location_id' => 'nullable|integer|exists:locations,id',
         ];
     }
 }
