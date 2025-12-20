@@ -21,5 +21,5 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::apiResource('customers', CustomerController::class);
     Route::get('/customers/search/{phoneNumber}', [CustomerController::class, 'searchByPhone']);
-    
+    Route::post('/free-items/check-eligibility', [FreeItemController::class, 'checkEligibility']);
 });

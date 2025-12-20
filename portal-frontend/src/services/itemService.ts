@@ -4,7 +4,7 @@ export interface Item {
     id: number;
     name: string;
     sku_code: string;
-    price: number;
+    price: any;
     is_active: boolean;
     measure: string;
     created_at: string;
