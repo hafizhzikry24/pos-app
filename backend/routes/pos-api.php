@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Pos\AuthController;
 use App\Http\Controllers\Pos\LocationController;
 use App\Http\Controllers\Pos\ItemController;
+use App\Http\Controllers\Pos\CustomerController;
+use App\Http\Controllers\Dashboard\FreeItemController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -16,5 +18,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::apiResource('locations', LocationController::class);
     Route::apiResource('items', ItemController::class);
-});
 
+    Route::apiResource('customers', CustomerController::class);
+    Route::get('/customers/search/{phoneNumber}', [CustomerController::class, 'searchByPhone']);
+    
+});

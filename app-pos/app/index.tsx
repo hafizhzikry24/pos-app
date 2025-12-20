@@ -4,6 +4,7 @@ import { View, Text } from 'react-native'; // Standard RN components
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Item, itemService } from '@/services/itemService';
+import { customerService, Customer } from '@/services/customerService';
 import { useAuth } from '@/context/AuthContext';
 import Numpad from '@/components/Numpad';
 import Toast from '@/components/Toast';
@@ -16,9 +17,14 @@ export default function PosScreen() {
   const [skuInput, setSkuInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState({ visible: false, message: '', type: 'error' as const });
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'error' as 'error' | 'success' });
   const { token, logout } = useAuth();
   const router = useRouter();
+  
+  // Member scanning states
+  const [memberPhone, setMemberPhone] = useState('');
+  const [scannedMember, setScannedMember] = useState<Customer | null>(null);
+  const [memberLoading, setMemberLoading] = useState(false);
 
   useEffect(() => {
     if (token) {
@@ -111,7 +117,61 @@ export default function PosScreen() {
   const handlePay = () => {
     const total = calculateTotal();
     if (total === 0) return;
-    router.push({ pathname: "/modal", params: { total } });
+    
+    // Pass cart and member info to payment modal
+    const params: any = { total };
+    if (scannedMember) {
+      params.memberId = scannedMember.id;
+      params.memberPhone = scannedMember.phone_number;
+    }
+    params.cartData = JSON.stringify(cart);
+    
+    router.push({ pathname: "/modal", params });
+  };
+
+  const handleMemberScan = async () => {
+    if (!memberPhone.trim()) {
+      setToast({
+        visible: true,
+        message: 'Please enter a phone number',
+        type: 'error'
+      });
+      return;
+    }
+
+    setMemberLoading(true);
+    try {
+      const customer = await customerService.searchByPhone(memberPhone.trim());
+      if (customer) {
+        setScannedMember(customer);
+        setToast({
+          visible: true,
+          message: `Member found: ${customer.name}`,
+          type: 'success'
+        });
+      } else {
+        setScannedMember(null);
+        setToast({
+          visible: true,
+          message: 'Member not found',
+          type: 'error'
+        });
+      }
+    } catch (error) {
+      setScannedMember(null);
+      setToast({
+        visible: true,
+        message: 'Failed to search member',
+        type: 'error'
+      });
+    } finally {
+      setMemberLoading(false);
+    }
+  };
+
+  const clearMember = () => {
+    setScannedMember(null);
+    setMemberPhone('');
   };
 
   const handleLogout = async () => {
@@ -167,6 +227,44 @@ export default function PosScreen() {
           contentContainerStyle={styles.gridContent}
           columnWrapperStyle={styles.gridRow}
         />
+
+        {/* Member Scanning Section - Bottom Left */}
+        <View style={styles.memberSectionBottom}>
+          <Text style={styles.memberSectionTitle}>Member Scan</Text>
+          {scannedMember ? (
+            <View style={styles.memberCard}>
+              <View style={styles.memberInfo}>
+                <Ionicons name="person-circle" size={20} color="#2563eb" />
+                <View style={styles.memberDetails}>
+                  <Text style={styles.memberName}>{scannedMember.name}</Text>
+                  <Text style={styles.memberPhone}>{scannedMember.phone_number}</Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={clearMember} style={styles.clearMemberButton}>
+                <Ionicons name="close-circle" size={20} color="#dc2626" />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.memberScanContainer}>
+              <TextInput
+                value={memberPhone}
+                onChangeText={setMemberPhone}
+                placeholder="Enter phone number"
+                style={styles.memberPhoneInput}
+                keyboardType="phone-pad"
+              />
+              <TouchableOpacity 
+                style={[styles.scanButton, memberLoading && styles.scanButtonDisabled]} 
+                onPress={handleMemberScan}
+                disabled={memberLoading}
+              >
+                <Text style={styles.scanButtonText}>
+                  {memberLoading ? 'Scanning...' : 'Scan'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
       </View>
 
       {/* Right Side: Cart */}
@@ -241,6 +339,7 @@ const styles = StyleSheet.create({
   leftPane: {
     flex: 2,
     padding: 16,
+    flexDirection: 'column',
   },
   rightPane: {
     flex: 1,
@@ -417,5 +516,77 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  // Member scanning styles
+  memberSectionBottom: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
+  memberSectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  memberCard: {
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    borderRadius: 8,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  memberInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  memberDetails: {
+    marginLeft: 8,
+    flex: 1,
+  },
+  memberName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1e40af',
+  },
+  memberPhone: {
+    fontSize: 12,
+    color: '#64748b',
+  },
+  clearMemberButton: {
+    padding: 4,
+  },
+  memberScanContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  memberPhoneInput: {
+    flex: 1,
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    height: 40,
+  },
+  scanButton: {
+    backgroundColor: '#2563eb',
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scanButtonDisabled: {
+    backgroundColor: '#9ca3af',
+  },
+  scanButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 14,
   },
 });
