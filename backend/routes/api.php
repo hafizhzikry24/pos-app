@@ -25,6 +25,6 @@ Route::middleware('auth:api')->group(function () {
     Route::apiResource('customers', CustomerController::class);
     Route::apiResource('locations', LocationController::class);
     Route::apiResource('items', ItemController::class);
-    
+    Route::apiResource('free-items', FreeItemController::class);
     Route::post('/logout', [AuthController::class, 'logout']);
 });
