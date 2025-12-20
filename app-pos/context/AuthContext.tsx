@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import * as SecureStore from 'expo-secure-store';
+import { storage } from '@/services/storage';
 import axios from 'axios';
 import { environment } from '@/environment/environment';
 
@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     useEffect(() => {
         const loadToken = async () => {
             try {
-                const storedToken = await SecureStore.getItemAsync('token');
+                const storedToken = await storage.getItem('token');
                 if (storedToken) {
                     setToken(storedToken);
                 }
@@ -38,11 +38,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 token_identifier: environment.TOKEN_IDENTIFIER
             });
             const { token } = response.data;
-            await SecureStore.setItemAsync('token', token);
+            if (!token) throw new Error("No token received");
+
+            await storage.setItem('token', token);
             setToken(token);
             return true;
         } catch (error: any) {
-            console.error(error);
+            console.error("AuthContext Login Error:", error);
             throw error;
         }
     };
@@ -57,7 +59,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } catch (e) {
             // ignore error on logout
         }
-        await SecureStore.deleteItemAsync('token');
+        await storage.deleteItem('token');
         setToken(null);
     };
 
