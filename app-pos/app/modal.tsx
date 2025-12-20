@@ -90,7 +90,7 @@ export default function ModalScreen() {
             </TouchableOpacity>
           ))}
           <TouchableOpacity style={[styles.moneyButton, styles.exactButton]} onPress={() => handlePayment(totalAmount)}>
-            <Text style={[styles.moneyButtonText, styles.exactButtonText]}>Uang Pas</Text>
+            <Text style={[styles.moneyButtonText, styles.exactButtonText]}>{formatCurrency(totalAmount)}</Text>
           </TouchableOpacity>
         </View>
 
