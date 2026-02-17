@@ -3,8 +3,12 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreItemRequest;
+use App\Http\Requests\UpdateItemRequest;
+use App\Http\Responses\MessageResponse;
 use App\Services\ItemService;
-use Illuminate\Http\Request;
+use Exception;
+use Illuminate\Http\JsonResponse;
 
 class ItemController extends Controller
 {
@@ -15,45 +19,53 @@ class ItemController extends Controller
         $this->service = $service;
     }
 
-    public function index()
+    public function index(): JsonResponse
     {
-        return response()->json($this->service->getAllItems());
+        try {
+            $items = $this->service->getAllItems();
+            return MessageResponse::success($items, 'Items retrieved successfully');
+        } catch (Exception $e) {
+            return MessageResponse::serverError($e->getMessage());
+        }
     }
 
-    public function show($id)
+    public function show($id): JsonResponse
     {
-        return response()->json($this->service->getItemById($id));
+        try {
+            $item = $this->service->getItemById($id);
+            return MessageResponse::success($item, 'Item retrieved successfully');
+        } catch (Exception $e) {
+            return MessageResponse::error('Item not found', 404);
+        }
     }
 
-    public function store(Request $request)
+    public function store(StoreItemRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => 'required',
-            'sku_code' => 'required|unique:items,sku_code',
-            'price' => 'required|numeric',
-            'measure' => 'required',
-            'is_active' => 'boolean',
-        ]);
-
-        return response()->json($this->service->createItem($validated), 201);
+        try {
+            $item = $this->service->createItem($request->validated());
+            return MessageResponse::success($item, 'Item created successfully', 201);
+        } catch (Exception $e) {
+            return MessageResponse::serverError($e->getMessage());
+        }
     }
 
-    public function update(Request $request, $id)
+    public function update(UpdateItemRequest $request, $id): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => 'required',
-            'sku_code' => 'required|unique:items,sku_code,' . $id,
-            'price' => 'required|numeric',
-            'measure' => 'required',
-            'is_active' => 'boolean',
-        ]);
-
-        return response()->json($this->service->updateItem($id, $validated));
+        try {
+            $item = $this->service->updateItem($id, $request->validated());
+            return MessageResponse::success($item, 'Item updated successfully');
+        } catch (Exception $e) {
+            return MessageResponse::serverError($e->getMessage());
+        }
     }
 
-    public function destroy($id)
+    public function destroy($id): JsonResponse
     {
-        $this->service->deleteItem($id);
-        return response()->json(null, 204);
+        try {
+            $this->service->deleteItem($id);
+            return MessageResponse::success(null, 'Item deleted successfully', 200);
+        } catch (Exception $e) {
+            return MessageResponse::serverError($e->getMessage());
+        }
     }
 }

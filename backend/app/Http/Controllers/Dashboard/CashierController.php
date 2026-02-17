@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Services\CashierService;
 use App\Http\Requests\StoreCashierRequest;
 use App\Http\Requests\UpdateCashierRequest;
-use Illuminate\Http\Request;
+use App\Http\Responses\MessageResponse;
+use Exception;
+use Illuminate\Http\JsonResponse;
 
 class CashierController extends Controller
 {
@@ -17,41 +19,62 @@ class CashierController extends Controller
         $this->cashierService = $cashierService;
     }
 
-    public function index()
+    public function index(): JsonResponse
     {
-        return response()->json($this->cashierService->getAllCashiers());
-    }
-
-    public function store(StoreCashierRequest $request)
-    {
-        $cashier = $this->cashierService->createCashier($request->validated());
-        return response()->json(['message' => 'Cashier created successfully', 'cashier' => $cashier], 201);
-    }
-
-    public function show($id)
-    {
-        $cashier = $this->cashierService->getCashierById($id);
-        if (!$cashier) {
-            return response()->json(['message' => 'Cashier not found'], 404);
+        try {
+            $cashiers = $this->cashierService->getAllCashiers();
+            return MessageResponse::success($cashiers, 'Cashiers retrieved successfully');
+        } catch (Exception $e) {
+            return MessageResponse::serverError($e->getMessage());
         }
-        return response()->json($cashier);
     }
 
-    public function update(UpdateCashierRequest $request, $id)
+    public function store(StoreCashierRequest $request): JsonResponse
     {
-        $cashier = $this->cashierService->updateCashier($id, $request->validated());
-        if (!$cashier) {
-            return response()->json(['message' => 'Cashier not found'], 404);
+        try {
+            $cashier = $this->cashierService->createCashier($request->validated());
+            return MessageResponse::success($cashier, 'Cashier created successfully', 201);
+        } catch (Exception $e) {
+            return MessageResponse::serverError($e->getMessage());
         }
-        return response()->json(['message' => 'Cashier updated successfully', 'cashier' => $cashier]);
     }
 
-    public function destroy($id)
+    public function show($id): JsonResponse
     {
-        $result = $this->cashierService->deleteCashier($id);
-        if (!$result) {
-            return response()->json(['message' => 'Cashier not found'], 404);
+        try {
+            $cashier = $this->cashierService->getCashierById($id);
+            if (!$cashier) {
+                return MessageResponse::error('Cashier not found', 404);
+            }
+            return MessageResponse::success($cashier, 'Cashier retrieved successfully');
+        } catch (Exception $e) {
+            return MessageResponse::serverError($e->getMessage());
         }
-        return response()->json(['message' => 'Cashier deleted successfully']);
+    }
+
+    public function update(UpdateCashierRequest $request, $id): JsonResponse
+    {
+        try {
+            $cashier = $this->cashierService->updateCashier($id, $request->validated());
+            if (!$cashier) {
+                return MessageResponse::error('Cashier not found', 404);
+            }
+            return MessageResponse::success($cashier, 'Cashier updated successfully');
+        } catch (Exception $e) {
+            return MessageResponse::serverError($e->getMessage());
+        }
+    }
+
+    public function destroy($id): JsonResponse
+    {
+        try {
+            $result = $this->cashierService->deleteCashier($id);
+            if (!$result) {
+                return MessageResponse::error('Cashier not found', 404);
+            }
+            return MessageResponse::success(null, 'Cashier deleted successfully');
+        } catch (Exception $e) {
+            return MessageResponse::serverError($e->getMessage());
+        }
     }
 }

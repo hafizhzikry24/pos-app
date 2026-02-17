@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Pos;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreTransactionRequest;
+use App\Http\Responses\MessageResponse;
 use App\Services\ReceiptService;
-use Illuminate\Http\Request;
 use Exception;
+use Illuminate\Http\JsonResponse;
 
 class ReceiptController extends Controller
 {
@@ -18,74 +20,31 @@ class ReceiptController extends Controller
 
     /**
      * Store a new transaction.
+     * @param StoreTransactionRequest $request
+     * @return JsonResponse
      */
-    public function store(Request $request)
+    public function store(StoreTransactionRequest $request): JsonResponse
     {
-        $request->validate([
-            'number' => 'required|string|unique:receipts,number',
-            'location_id' => 'required|exists:locations,id',
-            'cashier_id' => 'required|exists:cashiers,id',
-            'customer_id' => 'nullable|exists:customers,id',
-            'total_amount' => 'required|numeric',
-            'discount_amount' => 'nullable|numeric',
-            'tax_amount' => 'nullable|numeric',
-            'payable_amount' => 'required|numeric',
-            'payment_method' => 'required|string',
-            'note' => 'nullable|string',
-            'items' => 'required|array|min:1',
-            'items.*.item_id' => 'required|exists:items,id',
-            'items.*.name' => 'required|string',
-            'items.*.quantity' => 'required|integer|min:1',
-            'items.*.price' => 'required|numeric',
-            'items.*.discount' => 'nullable|numeric',
-            'items.*.total' => 'required|numeric',
-        ]);
-
         try {
-            $receiptData = $request->only([
-                'number',
-                'location_id',
-                'cashier_id',
-                'customer_id',
-                'total_amount',
-                'discount_amount',
-                'tax_amount',
-                'payable_amount',
-                'payment_method',
-                'note'
-            ]);
-
-            $receipt = $this->service->createTransaction($receiptData, $request->items);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Transaction processed successfully',
-                'data' => $receipt
-            ], 201);
+            $receipt = $this->service->createTransaction($request->validated(), $request->items);
+            return MessageResponse::success($receipt, 'Transaction processed successfully', 201);
         } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
-            ], 500);
+            return MessageResponse::serverError($e->getMessage());
         }
     }
 
     /**
      * Display the specified receipt.
+     * @param int|string $id
+     * @return JsonResponse
      */
-    public function show($id)
+    public function show($id): JsonResponse
     {
         try {
             $receipt = $this->service->getReceiptById($id);
-            return response()->json([
-                'success' => true,
-                'data' => $receipt
-            ]);
+            return MessageResponse::success($receipt, 'Receipt retrieved successfully');
         } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Receipt not found'
-            ], 404);
+            return MessageResponse::error('Receipt not found', 404);
         }
     }
 }

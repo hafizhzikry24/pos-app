@@ -3,8 +3,12 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreLocationRequest;
+use App\Http\Requests\UpdateLocationRequest;
+use App\Http\Responses\MessageResponse;
 use App\Services\LocationService;
-use Illuminate\Http\Request;
+use Exception;
+use Illuminate\Http\JsonResponse;
 
 class LocationController extends Controller
 {
@@ -15,41 +19,53 @@ class LocationController extends Controller
         $this->service = $service;
     }
 
-    public function index()
+    public function index(): JsonResponse
     {
-        return response()->json($this->service->getAllLocations());
+        try {
+            $locations = $this->service->getAllLocations();
+            return MessageResponse::success($locations, 'Locations retrieved successfully');
+        } catch (Exception $e) {
+            return MessageResponse::serverError($e->getMessage());
+        }
     }
 
-    public function show($id)
+    public function show($id): JsonResponse
     {
-        return response()->json($this->service->getLocationById($id));
+        try {
+            $location = $this->service->getLocationById($id);
+            return MessageResponse::success($location, 'Location retrieved successfully');
+        } catch (Exception $e) {
+            return MessageResponse::error('Location not found', 404);
+        }
     }
 
-    public function store(Request $request)
+    public function store(StoreLocationRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'code' => 'required|unique:locations,code',
-            'name' => 'required',
-            'address' => 'required',
-        ]);
-
-        return response()->json($this->service->createLocation($validated), 201);
+        try {
+            $location = $this->service->createLocation($request->validated());
+            return MessageResponse::success($location, 'Location created successfully', 201);
+        } catch (Exception $e) {
+            return MessageResponse::serverError($e->getMessage());
+        }
     }
 
-    public function update(Request $request, $id)
+    public function update(UpdateLocationRequest $request, $id): JsonResponse
     {
-        $validated = $request->validate([
-            'code' => 'required|unique:locations,code,' . $id,
-            'name' => 'required',
-            'address' => 'required',
-        ]);
-
-        return response()->json($this->service->updateLocation($id, $validated));
+        try {
+            $location = $this->service->updateLocation($id, $request->validated());
+            return MessageResponse::success($location, 'Location updated successfully');
+        } catch (Exception $e) {
+            return MessageResponse::serverError($e->getMessage());
+        }
     }
 
-    public function destroy($id)
+    public function destroy($id): JsonResponse
     {
-        $this->service->deleteLocation($id);
-        return response()->json(null, 204);
+        try {
+            $this->service->deleteLocation($id);
+            return MessageResponse::success(null, 'Location deleted successfully');
+        } catch (Exception $e) {
+            return MessageResponse::serverError($e->getMessage());
+        }
     }
 }
