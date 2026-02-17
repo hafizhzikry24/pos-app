@@ -22,4 +22,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('customers', CustomerController::class);
     Route::get('/customers/search/{phoneNumber}', [CustomerController::class, 'searchByPhone']);
     Route::post('/free-items/check-eligibility', [FreeItemController::class, 'checkEligibility']);
+
+    Route::post('/receipts', [\App\Http\Controllers\Pos\ReceiptController::class, 'store']);
+    Route::get('/receipts/{id}', [\App\Http\Controllers\Pos\ReceiptController::class, 'show']);
 });
