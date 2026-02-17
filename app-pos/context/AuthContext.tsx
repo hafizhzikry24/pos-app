@@ -13,7 +13,19 @@ const AuthContext = createContext<any>(null);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [token, setToken] = useState<string | null>(null);
+    const [user, setUser] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
+
+    const fetchProfile = async (authToken: string) => {
+        try {
+            const response = await axios.get(`${API_URL}/profile`, {
+                headers: { Authorization: `Bearer ${authToken}` }
+            });
+            setUser(response.data);
+        } catch (error) {
+            console.error("Fetch Profile Error:", error);
+        }
+    };
 
     useEffect(() => {
         const loadToken = async () => {
@@ -21,6 +33,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 const storedToken = await storage.getItem('token');
                 if (storedToken) {
                     setToken(storedToken);
+                    await fetchProfile(storedToken);
                 }
             } catch (e) {
                 console.error(e);
@@ -42,6 +55,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
             await storage.setItem('token', token);
             setToken(token);
+            await fetchProfile(token);
             return true;
         } catch (error: any) {
             console.error("AuthContext Login Error:", error);
@@ -61,10 +75,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
         await storage.deleteItem('token');
         setToken(null);
+        setUser(null);
     };
 
     return (
-        <AuthContext.Provider value={{ token, isLoading, login, logout }}>
+        <AuthContext.Provider value={{ token, user, isLoading, login, logout }}>
             {children}
         </AuthContext.Provider>
     );

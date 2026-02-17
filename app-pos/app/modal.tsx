@@ -4,6 +4,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { itemService } from '@/services/itemService';
 import { freeItemService, FreeItem, CheckEligibilityRequest } from '@/services/freeItemService';
+import { receiptService, ReceiptData } from '@/services/receiptService';
+import { useAuth } from '@/context/AuthContext';
 
 // Helper functions
 const formatCurrency = (amount: number) => {
@@ -20,8 +22,9 @@ const formatNumber = (amount: number) => {
 export default function ModalScreen() {
   const { total, memberId, memberPhone, cartData } = useLocalSearchParams();
   const router = useRouter();
+  const { user } = useAuth();
   const totalAmount = Number(total) || 0;
-  
+
   // Parse cart data
   const cart = cartData ? JSON.parse(cartData as string) : [];
 
@@ -83,7 +86,7 @@ export default function ModalScreen() {
   };
 
   const toggleFreeItem = (freeItemId: number) => {
-    setSelectedFreeItems(prev => 
+    setSelectedFreeItems(prev =>
       prev.includes(freeItemId)
         ? prev.filter(id => id !== freeItemId)
         : [...prev, freeItemId]
@@ -100,19 +103,40 @@ export default function ModalScreen() {
     }
 
     try {
-      await itemService.processTransaction(
-        // {
-        //   items: cart.map(item => ({ id: item.id, quantity: item.quantity })),
-        //   total_amount: totalAmount,
-        //   cash_received: cashReceived,
-        //   change_amount: change
-        // }
-      );
-      clearCart();
+      if (!user) {
+        Alert.alert("Error", "User session not found.");
+        return;
+      }
+
+      const receiptNumber = `RCP-${Date.now()}`;
+
+      const receiptData: ReceiptData = {
+        number: receiptNumber,
+        location_id: user.location_id,
+        cashier_id: user.id,
+        customer_id: memberId ? Number(memberId) : null,
+        total_amount: totalAmount,
+        discount_amount: 0,
+        tax_amount: 0,
+        payable_amount: totalAmount,
+        payment_method: 'cash', // Default to cash for now
+        note: 'POS transaction',
+        items: cart.map((item: any) => ({
+          item_id: item.item.id,
+          name: item.item.name,
+          quantity: item.quantity,
+          price: item.item.price,
+          discount: 0,
+          total: item.item.price * item.quantity
+        }))
+      };
+
+      await receiptService.create(receiptData);
+
       Alert.alert("Success", "Transaction completed!", [{ text: "OK", onPress: () => router.back() }]);
-    } catch (error) {
-      // Fallback for demo if API fails or is not implemented
-      Alert.alert("Success", "Transaction completed (Demo)!", [{ text: "OK", onPress: () => router.back() }]);
+    } catch (error: any) {
+      console.error('Payment Error:', error);
+      Alert.alert("Error", error.response?.data?.message || "Failed to process transaction.");
     }
   };
 
@@ -174,7 +198,7 @@ export default function ModalScreen() {
             <Ionicons name="gift-outline" size={16} color={hasMember ? '#2563eb' : '#9ca3af'} />
             {' '}Free Items {hasMember ? '' : '(Member Required)'}
           </Text>
-          
+
           {!hasMember ? (
             <View style={styles.freeItemsDisabled}>
               <Text style={styles.freeItemsDisabledText}>
