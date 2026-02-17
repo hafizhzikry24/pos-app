@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "app-pos",
-    "slug": "app-pos",
+    "name": "POS Customer Display",
+    "slug": "pos-customer-display",
     "version": "1.0.0",
     "orientation": "landscape",
     "icon": "./assets/images/icon.png",
@@ -52,6 +52,7 @@
       "eas": {
         "projectId": "8955f692-fac5-4964-8a97-3d970a26cda9"
       }
-    }
+    },
+    "main": "./app/customer-entry.js"
   }
 }
