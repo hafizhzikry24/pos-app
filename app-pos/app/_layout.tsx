@@ -6,6 +6,7 @@ import React, { useEffect } from 'react';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { CartProvider } from './context/CartContext';
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
@@ -44,7 +45,9 @@ function RootLayoutNav() {
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <RootLayoutNav />
+      <CartProvider>
+        <RootLayoutNav />
+      </CartProvider>
     </AuthProvider>
   );
 }

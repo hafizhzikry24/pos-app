@@ -55,6 +55,11 @@ class AppServiceProvider extends ServiceProvider
             \App\Interfaces\FreeItemRepositoryInterface::class,
             \App\Repositories\FreeItemRepository::class
         );
+
+        $this->app->bind(
+            \App\Interfaces\ReceiptRepositoryInterface::class,
+            \App\Repositories\ReceiptRepository::class
+        );
     }
 
     /**

@@ -10,6 +10,11 @@ class FreeItem extends Model
 {
     use HasFactory, SoftDeletes;
 
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
     protected $fillable = [
         'name',
         'required_purchase_amount',
@@ -17,17 +22,32 @@ class FreeItem extends Model
         'description',
     ];
 
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
     protected $casts = [
         'required_purchase_amount' => 'decimal:2',
         'is_active' => 'boolean',
     ];
 
+    /**
+     * Get the eligible items for the free item.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
+     */
     public function eligibleItems()
     {
         return $this->belongsToMany(Item::class, 'free_item_eligible_items')
             ->withTimestamps();
     }
 
+    /**
+     * Get the eligible items for the free item.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
+     */
     public function selectableItems()
     {
         return $this->belongsToMany(Item::class, 'free_item_selectable_items')

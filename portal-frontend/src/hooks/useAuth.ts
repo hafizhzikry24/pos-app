@@ -28,15 +28,21 @@ export const useAuth = () => {
     }, []);
 
     const login = async (credentials: any) => {
-        const loginData = {
-            ...credentials,
-            token_identifier: environment.token_identifier,
-        };
-        const data = await authService.login(loginData);
-        localStorage.setItem('token', data.token);
-        const userData = await authService.getUser();
-        setUser(userData);
-        router.push('/cashier');
+        try {
+            const loginData = {
+                ...credentials,
+                token_identifier: environment.token_identifier || '@Pos_apps_2025', // Fallback to hardcoded value if env var is not loaded
+            };
+            console.log('Login data:', loginData); // Debug log
+            const data = await authService.login(loginData);
+            localStorage.setItem('token', data.token);
+            const userData = await authService.getUser();
+            setUser(userData);
+            router.push('/cashier');
+        } catch (error) {
+            console.error('Login error:', error);
+            throw error; // Re-throw the error to be handled by the component
+        }
     };
 
     const logout = async () => {

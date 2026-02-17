@@ -7,10 +7,12 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
 
 class Cashier extends Authenticatable
 {
-    use HasFactory, Notifiable, HasApiTokens, SoftDeletes;
+    use HasFactory, Notifiable, HasApiTokens, SoftDeletes, LogsActivity;
 
     /*
      * @var string
@@ -31,11 +33,6 @@ class Cashier extends Authenticatable
         'location_id',
     ];
 
-    public function location()
-    {
-        return $this->belongsTo(Location::class);
-    }
-
     /*
      * @var array
      */
@@ -54,5 +51,36 @@ class Cashier extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
         ];
+    }
+
+    /**
+     * Get the options for logging activity.
+     *
+     * @return LogOptions
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logAll()
+            ->logOnlyDirty();
+    }
+
+
+    /**
+     * Get the location for the cashier.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function location()
+    {
+        return $this->belongsTo(Location::class);
+    }
+
+    /**
+     * Get the receipts for the cashier.
+     */
+    public function receipts()
+    {
+        return $this->hasMany(Receipt::class);
     }
 }
