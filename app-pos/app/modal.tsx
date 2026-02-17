@@ -93,8 +93,6 @@ export default function ModalScreen() {
     );
   };
 
-  // Clear cart function
-  const clearCart = () => { };
 
   const confirmPayment = async () => {
     if (change < 0) {
@@ -108,12 +106,22 @@ export default function ModalScreen() {
         return;
       }
 
+      // Handle potential stale user object if it's still wrapped in 'data'
+      const cashierId = user.id || user.data?.id;
+      const locationId = user.location_id || user.data?.location_id;
+
+      if (!cashierId || !locationId) {
+        console.log("Stale or incomplete user object:", user);
+        Alert.alert("Error", "Incomplete user profile. Please try to logout and login again.");
+        return;
+      }
+
       const receiptNumber = `RCP-${Date.now()}`;
 
       const receiptData: ReceiptData = {
         number: receiptNumber,
-        location_id: user.location_id,
-        cashier_id: user.id,
+        location_id: locationId,
+        cashier_id: cashierId,
         customer_id: memberId ? Number(memberId) : null,
         total_amount: totalAmount,
         discount_amount: 0,
@@ -133,10 +141,33 @@ export default function ModalScreen() {
 
       await receiptService.create(receiptData);
 
-      Alert.alert("Success", "Transaction completed!", [{ text: "OK", onPress: () => router.back() }]);
+      Alert.alert("Success", "Transaction completed!", [
+        {
+          text: "OK",
+          onPress: () => {
+            router.replace({ pathname: "/", params: { refresh: Date.now().toString() } });
+          }
+        }
+      ]);
     } catch (error: any) {
       console.error('Payment Error:', error);
-      Alert.alert("Error", error.response?.data?.message || "Failed to process transaction.");
+
+      let errorMessage = "Failed to process transaction.";
+      if (error.response?.data) {
+        const data = error.response.data;
+        errorMessage = data.message || errorMessage;
+
+        // If there are validation errors, append them
+        if (data.errors) {
+          const firstErrorField = Object.keys(data.errors)[0];
+          const firstErrorMessage = data.errors[firstErrorField][0];
+          errorMessage = `${errorMessage}\n\n${firstErrorMessage}`;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      Alert.alert("Error", errorMessage);
     }
   };
 

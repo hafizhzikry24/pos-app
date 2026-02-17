@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, ScrollView } from 'react-native';
 import { View, Text } from 'react-native'; // Standard RN components
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Item, itemService } from '@/services/itemService';
 import { customerService, Customer } from '@/services/customerService';
@@ -18,7 +18,17 @@ export default function PosScreen() {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'error' as 'error' | 'success' });
   const { token } = useAuth();
-  
+  const params = useLocalSearchParams();
+
+  useEffect(() => {
+    if (params.refresh) {
+      setCart([]);
+      setScannedMember(null);
+      setMemberPhone('');
+      fetchItems();
+    }
+  }, [params.refresh]);
+
   // Member scanning states
   const [memberPhone, setMemberPhone] = useState('');
   const [scannedMember, setScannedMember] = useState<Customer | null>(null);
@@ -49,7 +59,7 @@ export default function PosScreen() {
     if (searchQuery.trim() === '') {
       setFilteredItems(items);
     } else {
-      const filtered = items.filter(item => 
+      const filtered = items.filter(item =>
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.sku_code.toLowerCase().includes(searchQuery.toLowerCase())
       );
@@ -115,7 +125,7 @@ export default function PosScreen() {
   const handlePay = () => {
     const total = calculateTotal();
     if (total === 0) return;
-    
+
     // Pass cart and member info to payment modal
     const params: any = { total };
     if (scannedMember) {
@@ -123,7 +133,7 @@ export default function PosScreen() {
       params.memberPhone = scannedMember.phone_number;
     }
     params.cartData = JSON.stringify(cart);
-    
+
     router.push({ pathname: "/modal", params });
   };
 
@@ -235,8 +245,8 @@ export default function PosScreen() {
                 style={styles.memberPhoneInput}
                 keyboardType="phone-pad"
               />
-              <TouchableOpacity 
-                style={[styles.scanButton, memberLoading && styles.scanButtonDisabled]} 
+              <TouchableOpacity
+                style={[styles.scanButton, memberLoading && styles.scanButtonDisabled]}
                 onPress={handleMemberScan}
                 disabled={memberLoading}
               >
