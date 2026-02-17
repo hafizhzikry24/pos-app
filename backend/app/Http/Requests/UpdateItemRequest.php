@@ -23,7 +23,7 @@ class UpdateItemRequest extends FormRequest
     {
         return [
             'name' => 'required',
-            'sku_code' => 'required|unique:items,sku_code,' . $this->route('id'),
+            'sku_code' => 'required|unique:items,sku_code,' . $this->route('item'),
             'price' => 'required|numeric',
             'measure' => 'required',
             'is_active' => 'boolean',
