@@ -70,13 +70,12 @@ export default function LocationListPage() {
                                     <td className="px-6 py-4">{loc.name}</td>
                                     <td className="px-6 py-4 truncate max-w-xs">{loc.address}</td>
                                     <td className="px-6 py-4 text-right flex justify-end gap-2">
-                                        {/* Placeholder for Edit Link */}
-                                        <button
-                                            onClick={() => alert("Edit feature coming soon")}
+                                        <Link
+                                            href={`/locations/${loc.id}`}
                                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                         >
                                             <Edit size={18} />
-                                        </button>
+                                        </Link>
                                         <button
                                             onClick={() => handleDelete(loc.id)}
                                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"

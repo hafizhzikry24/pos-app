@@ -1,12 +1,13 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { customerService, Customer, UpdateCustomerRequest } from '@/services/customer';
 import { ArrowLeft, Save, UserPlus, Phone } from 'lucide-react';
 import Link from 'next/link';
 
-export default function EditCustomerPage({ params }: { params: { id: string } }) {
+export default function EditCustomerPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
     const { user, loading } = useAuth();
     const router = useRouter();
     const [customer, setCustomer] = useState<Customer | null>(null);
@@ -24,10 +25,10 @@ export default function EditCustomerPage({ params }: { params: { id: string } })
             return;
         }
 
-        if (user && params.id) {
-            loadCustomer(parseInt(params.id));
+        if (user && id) {
+            loadCustomer(parseInt(id));
         }
-    }, [user, loading, router, params.id]);
+    }, [user, loading, router, id]);
 
     const loadCustomer = async (id: number) => {
         try {
@@ -64,12 +65,12 @@ export default function EditCustomerPage({ params }: { params: { id: string } })
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (!validateForm()) return;
 
         setIsSubmitting(true);
         try {
-            await customerService.update(parseInt(params.id), formData);
+            await customerService.update(parseInt(id), formData);
             router.push('/customers');
         } catch (err) {
             console.error(err);
@@ -132,9 +133,8 @@ export default function EditCustomerPage({ params }: { params: { id: string } })
                                 name="name"
                                 value={formData.name}
                                 onChange={handleChange}
-                                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                                    errors.name ? 'border-red-300' : 'border-gray-300'
-                                }`}
+                                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.name ? 'border-red-300' : 'border-gray-300'
+                                    }`}
                                 placeholder="Enter customer name"
                             />
                             {errors.name && (
@@ -154,9 +154,8 @@ export default function EditCustomerPage({ params }: { params: { id: string } })
                                     name="phone_number"
                                     value={formData.phone_number}
                                     onChange={handleChange}
-                                    className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                                        errors.phone_number ? 'border-red-300' : 'border-gray-300'
-                                    }`}
+                                    className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.phone_number ? 'border-red-300' : 'border-gray-300'
+                                        }`}
                                     placeholder="+1 (555) 123-4567"
                                 />
                             </div>

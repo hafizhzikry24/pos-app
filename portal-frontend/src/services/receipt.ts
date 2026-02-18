@@ -36,15 +36,15 @@ export interface Receipt {
 
 export const receiptService = {
     getAll: async () => {
-        const response = await api.get<{ success: boolean; data: Receipt[] }>("/receipts");
+        const response = await api.get<Receipt[]>("/receipts");
         return response.data;
     },
     getById: async (id: number) => {
-        const response = await api.get<{ success: boolean; data: Receipt }>(`/receipts/${id}`);
+        const response = await api.get<Receipt>(`/receipts/${id}`);
         return response.data;
     },
     delete: async (id: number) => {
-        const response = await api.delete<{ success: boolean; message: string }>(`/receipts/${id}`);
+        const response = await api.delete<any>(`/receipts/${id}`);
         return response.data;
     },
 };

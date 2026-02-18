@@ -16,10 +16,8 @@ export default function ReceiptListPage() {
 
     const fetchReceipts = async () => {
         try {
-            const response = await receiptService.getAll();
-            if (response.success) {
-                setReceipts(response.data);
-            }
+            const data = await receiptService.getAll();
+            setReceipts(data || []);
         } catch (error) {
             console.error("Failed to fetch receipts", error);
         } finally {
