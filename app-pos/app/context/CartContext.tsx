@@ -17,6 +17,12 @@ interface CartContextType {
   updateQuantity: (itemId: number, change: number) => void;
   clearCart: () => void;
   calculateTotal: () => number;
+  // Member state
+  scannedMember: any | null;
+  memberPhone: string;
+  setScannedMember: (member: any | null) => void;
+  setMemberPhone: (phone: string) => void;
+  clearMember: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -31,6 +37,8 @@ export const useCart = () => {
 
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [scannedMember, setScannedMember] = useState<any | null>(null);
+  const [memberPhone, setMemberPhone] = useState('');
 
   const addToCart = (item: any) => {
     setCart(prevCart => {
@@ -62,8 +70,15 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
   };
 
+  const clearMember = () => {
+    setScannedMember(null);
+    setMemberPhone('');
+  };
+
   const clearCart = () => {
+    console.log('CartContext: clearing cart');
     setCart([]);
+    clearMember();
   };
 
   const calculateTotal = () => {
@@ -77,7 +92,12 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       removeFromCart,
       updateQuantity,
       clearCart,
-      calculateTotal
+      calculateTotal,
+      scannedMember,
+      memberPhone,
+      setScannedMember,
+      setMemberPhone,
+      clearMember
     }}>
       {children}
     </CartContext.Provider>

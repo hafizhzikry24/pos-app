@@ -3,112 +3,123 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
-use App\Repositories\FreeItemRepository;
+use App\Http\Requests\CheckEligibilityRequest;
+use App\Services\FreeItemService;
 use App\Http\Requests\StoreFreeItemRequest;
 use App\Http\Requests\UpdateFreeItemRequest;
-use Illuminate\Http\Request;
+use App\Http\Responses\MessageResponse;
+use Exception;
+use Illuminate\Http\JsonResponse;
 
 class FreeItemController extends Controller
 {
-    protected $freeItemRepository;
+    protected $freeItemService;
 
-    public function __construct(FreeItemRepository $freeItemRepository)
+    /**
+     * @param FreeItemService $freeItemService
+     */
+    public function __construct(FreeItemService $freeItemService)
     {
-        $this->freeItemRepository = $freeItemRepository;
+        $this->freeItemService = $freeItemService;
     }
 
-    public function index()
+    /**
+     * @return JsonResponse
+     */
+    public function index(): JsonResponse
     {
-        return response()->json($this->freeItemRepository->getAll());
+        try {
+            $freeItems = $this->freeItemService->getAllFreeItems();
+            return MessageResponse::success($freeItems, 'Free items retrieved successfully');
+        } catch (Exception $e) {
+            return MessageResponse::serverError($e->getMessage());
+        }
     }
 
-    public function store(StoreFreeItemRequest $request)
+    /**
+     * @param StoreFreeItemRequest $request
+     * @return JsonResponse
+     */
+    public function store(StoreFreeItemRequest $request): JsonResponse
     {
-        $data = $request->validated();
-        $freeItem = $this->freeItemRepository->create($data);
-        
-        if (isset($data['eligible_items'])) {
-            $this->freeItemRepository->syncEligibleItems($freeItem->id, $data['eligible_items']);
+        try {
+            $freeItem = $this->freeItemService->createFreeItem($request->validated());
+            return MessageResponse::success($freeItem, 'Free item created successfully', 201);
+        } catch (Exception $e) {
+            return MessageResponse::serverError($e->getMessage());
         }
-        
-        if (isset($data['selectable_items'])) {
-            $this->freeItemRepository->syncSelectableItems($freeItem->id, $data['selectable_items']);
-        }
-
-        $freeItem = $this->freeItemRepository->findById($freeItem->id);
-        
-        return response()->json(['message' => 'Free item created successfully', 'free_item' => $freeItem], 201);
     }
 
-    public function show($id)
+    /**
+     * @param int|string $id
+     * @return JsonResponse
+     */
+    public function show($id): JsonResponse
     {
-        $freeItem = $this->freeItemRepository->findById($id);
-        if (!$freeItem) {
-            return response()->json(['message' => 'Free item not found'], 404);
-        }
-        return response()->json($freeItem);
-    }
-
-    public function update(UpdateFreeItemRequest $request, $id)
-    {
-        $data = $request->validated();
-        $freeItem = $this->freeItemRepository->update($id, $data);
-        
-        if (!$freeItem) {
-            return response()->json(['message' => 'Free item not found'], 404);
-        }
-
-        if (isset($data['eligible_items'])) {
-            $this->freeItemRepository->syncEligibleItems($id, $data['eligible_items']);
-        }
-        
-        if (isset($data['selectable_items'])) {
-            $this->freeItemRepository->syncSelectableItems($id, $data['selectable_items']);
-        }
-
-        $freeItem = $this->freeItemRepository->findById($id);
-        
-        return response()->json(['message' => 'Free item updated successfully', 'free_item' => $freeItem]);
-    }
-
-    public function destroy($id)
-    {
-        $result = $this->freeItemRepository->delete($id);
-        if (!$result) {
-            return response()->json(['message' => 'Free item not found'], 404);
-        }
-        return response()->json(['message' => 'Free item deleted successfully']);
-    }
-
-    public function checkEligibility(Request $request)
-    {
-        $request->validate([
-            'purchase_amount' => 'required|numeric|min:0',
-            'cart_items' => 'sometimes|array',
-            'cart_items.*.item_id' => 'required|integer|exists:items,id',
-            'cart_items.*.quantity' => 'required|integer|min:1',
-        ]);
-
-        $purchaseAmount = $request->input('purchase_amount');
-        $eligibleFreeItems = $this->freeItemRepository->getEligibleFreeItems($purchaseAmount);
-
-        $cartItemIds = [];
-        if ($request->has('cart_items')) {
-            $cartItemIds = array_column($request->input('cart_items'), 'item_id');
-        }
-
-        $availableFreeItems = [];
-        foreach ($eligibleFreeItems as $freeItem) {
-            $eligibleItemIds = $freeItem->eligibleItems->pluck('id')->toArray();
-            
-            if (empty($eligibleItemIds) || count(array_intersect($cartItemIds, $eligibleItemIds)) > 0) {
-                $availableFreeItems[] = $freeItem;
+        try {
+            $freeItem = $this->freeItemService->getFreeItemById($id);
+            if (!$freeItem) {
+                return MessageResponse::error('Free item not found', 404);
             }
+            return MessageResponse::success($freeItem, 'Free item retrieved successfully');
+        } catch (Exception $e) {
+            return MessageResponse::serverError($e->getMessage());
         }
+    }
 
-        return response()->json([
-            'eligible_free_items' => $availableFreeItems,
-            'purchase_amount' => $purchaseAmount,
-        ]);
+    /**
+     * @param UpdateFreeItemRequest $request
+     * @param int|string $id
+     * @return JsonResponse
+     */
+    public function update(UpdateFreeItemRequest $request, $id): JsonResponse
+    {
+        try {
+            $freeItem = $this->freeItemService->updateFreeItem($id, $request->validated());
+            if (!$freeItem) {
+                return MessageResponse::error('Free item not found', 404);
+            }
+            return MessageResponse::success($freeItem, 'Free item updated successfully');
+        } catch (Exception $e) {
+            return MessageResponse::serverError($e->getMessage());
+        }
+    }
+
+    /**
+     * @param int|string $id
+     * @return JsonResponse
+     */
+    public function destroy($id): JsonResponse
+    {
+        try {
+            $result = $this->freeItemService->deleteFreeItem($id);
+            if (!$result) {
+                return MessageResponse::error('Free item not found', 404);
+            }
+            return MessageResponse::success(null, 'Free item deleted successfully');
+        } catch (Exception $e) {
+            return MessageResponse::serverError($e->getMessage());
+        }
+    }
+
+    /**
+     * @param CheckEligibilityRequest $request
+     * @return JsonResponse
+     */
+    public function checkEligibility(CheckEligibilityRequest $request): JsonResponse
+    {
+        try {
+            $purchaseAmount = $request->input('purchase_amount');
+            $cartItems = $request->input('cart_items', []);
+
+            $availableFreeItems = $this->freeItemService->checkEligibility($purchaseAmount, $cartItems);
+
+            return MessageResponse::success([
+                'eligible_free_items' => $availableFreeItems,
+                'purchase_amount' => $purchaseAmount,
+            ], 'Eligibility checked successfully');
+        } catch (Exception $e) {
+            return MessageResponse::serverError($e->getMessage());
+        }
     }
 }

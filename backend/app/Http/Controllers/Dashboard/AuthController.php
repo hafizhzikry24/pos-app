@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers\Dashboard;
 
-use App\Services\AuthService;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\LoginRequest;
 use App\Http\Requests\StoreUserRequest;
+use App\Http\Responses\MessageResponse;
+use App\Services\AuthService;
+use Exception;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
-use App\Http\Controllers\Controller;
 
 class AuthController extends Controller
 {
@@ -22,42 +26,49 @@ class AuthController extends Controller
 
     /**
      * @param StoreUserRequest $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function register(StoreUserRequest $request)
+    public function register(StoreUserRequest $request): JsonResponse
     {
-        $user = $this->authService->register($request->validated());
-        $token = $user->createToken('auth_token')->plainTextToken;
-        return response()->json(['message' => 'User created successfully', 'user' => $user, 'token' => $token], 201);
+        try {
+            $user = $this->authService->register($request->validated());
+            $token = $user->createToken('auth_token')->plainTextToken;
+            return MessageResponse::success([
+                'user' => $user,
+                'token' => $token
+            ], 'User created successfully', 201);
+        } catch (Exception $e) {
+            return MessageResponse::error($e->getMessage(), 500);
+        }
     }
 
     /**
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @param LoginRequest $request
+     * @return JsonResponse
      */
-    public function login(Request $request)
+    public function login(LoginRequest $request): JsonResponse
     {
-        $credentials = $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
-            'token_identifier' => 'required',
-        ]);
-
         try {
-            $token = $this->authService->login($credentials);
-            return response()->json(['token' => $token]);
+            $token = $this->authService->login($request->validated());
+            return MessageResponse::success(['token' => $token], 'Login successful');
         } catch (ValidationException $e) {
-            return response()->json(['message' => $e->getMessage()], 401);
+            return MessageResponse::validate($e->errors(), $e->getMessage());
+        } catch (Exception $e) {
+            return MessageResponse::serverError($e->getMessage());
         }
     }
 
     /**
      * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function logout(Request $request)
+    public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
-        return response()->json(['message' => 'Logged out successfully']);
+        try {
+            $request->user()->currentAccessToken()->delete();
+            return MessageResponse::success(null, 'Logged out successfully');
+        } catch (Exception $e) {
+            return MessageResponse::error($e->getMessage(), 500);
+        }
     }
 }

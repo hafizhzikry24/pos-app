@@ -1,13 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { storage } from '@/services/storage';
-import axios from 'axios';
+import api from '@/services/api';
 import { environment } from '@/environment/environment';
-
-// Replace with your actual backend URL. 
-// For Android Emulator use 10.0.2.2 instead of localhost
-// For iOS Simulator localhost is fine
-// For Physical device use your machine's IP
-const API_URL = environment.API_URL;
 
 const AuthContext = createContext<any>(null);
 
@@ -16,11 +10,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    const fetchProfile = async (authToken: string) => {
+    const fetchProfile = async () => {
         try {
-            const response = await axios.get(`${API_URL}/profile`, {
-                headers: { Authorization: `Bearer ${authToken}` }
-            });
+            const response = await api.get('/profile');
+            // Interceptor already returned response.data.data into response.data
             setUser(response.data);
         } catch (error) {
             console.error("Fetch Profile Error:", error);
@@ -33,7 +26,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 const storedToken = await storage.getItem('token');
                 if (storedToken) {
                     setToken(storedToken);
-                    await fetchProfile(storedToken);
+                    await fetchProfile();
                 }
             } catch (e) {
                 console.error(e);
@@ -46,16 +39,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const login = async (credentials: any) => {
         try {
-            const response = await axios.post(`${API_URL}/login`, {
+            const response = await api.post('/login', {
                 ...credentials,
                 token_identifier: environment.TOKEN_IDENTIFIER
             });
+            // Interceptor returns response.data.data into response.data
+            // We expect token inside that data
             const { token } = response.data;
             if (!token) throw new Error("No token received");
 
             await storage.setItem('token', token);
             setToken(token);
-            await fetchProfile(token);
+            await fetchProfile();
             return true;
         } catch (error: any) {
             console.error("AuthContext Login Error:", error);
@@ -66,9 +61,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const logout = async () => {
         try {
             if (token) {
-                await axios.post(`${API_URL}/logout`, {}, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                await api.post('/logout');
             }
         } catch (e) {
             // ignore error on logout

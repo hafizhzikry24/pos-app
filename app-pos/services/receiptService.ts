@@ -25,11 +25,11 @@ export interface ReceiptData {
 
 export const receiptService = {
     create: async (data: ReceiptData) => {
-        const response = await api.post<{ success: boolean; message: string; data: any }>('/receipts', data);
+        const response = await api.post<any>('/receipts', data);
         return response.data;
     },
     getById: async (id: number) => {
-        const response = await api.get<{ success: boolean; data: any }>(`/receipts/${id}`);
+        const response = await api.get<any>(`/receipts/${id}`);
         return response.data;
     }
 };
