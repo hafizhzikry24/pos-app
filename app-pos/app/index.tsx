@@ -8,6 +8,7 @@ import { customerService, Customer } from '@/services/customerService';
 import { useAuth } from '@/context/AuthContext';
 import Numpad from '@/components/Numpad';
 import Toast from '@/components/Toast';
+import MemberNumpadModal from '@/components/MemberNumpadModal';
 import { useRouter } from 'expo-router';
 
 export default function PosScreen() {
@@ -20,11 +21,12 @@ export default function PosScreen() {
   const [toast, setToast] = useState({ visible: false, message: '', type: 'error' as 'error' | 'success' });
   const { token, logout } = useAuth();
   const router = useRouter();
-  
+
   // Member scanning states
   const [memberPhone, setMemberPhone] = useState('');
   const [scannedMember, setScannedMember] = useState<Customer | null>(null);
   const [memberLoading, setMemberLoading] = useState(false);
+  const [isMemberModalVisible, setIsMemberModalVisible] = useState(false);
 
   useEffect(() => {
     if (token) {
@@ -51,7 +53,7 @@ export default function PosScreen() {
     if (searchQuery.trim() === '') {
       setFilteredItems(items);
     } else {
-      const filtered = items.filter(item => 
+      const filtered = items.filter(item =>
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.sku_code.toLowerCase().includes(searchQuery.toLowerCase())
       );
@@ -117,7 +119,7 @@ export default function PosScreen() {
   const handlePay = () => {
     const total = calculateTotal();
     if (total === 0) return;
-    
+
     // Pass cart and member info to payment modal
     const params: any = { total };
     if (scannedMember) {
@@ -125,12 +127,12 @@ export default function PosScreen() {
       params.memberPhone = scannedMember.phone_number;
     }
     params.cartData = JSON.stringify(cart);
-    
+
     router.push({ pathname: "/modal", params });
   };
 
-  const handleMemberScan = async () => {
-    if (!memberPhone.trim()) {
+  const handleMemberScan = async (phone: string) => {
+    if (!phone.trim()) {
       setToast({
         visible: true,
         message: 'Please enter a phone number',
@@ -141,7 +143,7 @@ export default function PosScreen() {
 
     setMemberLoading(true);
     try {
-      const customer = await customerService.searchByPhone(memberPhone.trim());
+      const customer = await customerService.searchByPhone(phone.trim());
       if (customer) {
         setScannedMember(customer);
         setToast({
@@ -149,8 +151,9 @@ export default function PosScreen() {
           message: `Member found: ${customer.name}`,
           type: 'success'
         });
+        setIsMemberModalVisible(false);
+        setMemberPhone('');
       } else {
-        setScannedMember(null);
         setToast({
           visible: true,
           message: 'Member not found',
@@ -158,7 +161,6 @@ export default function PosScreen() {
         });
       }
     } catch (error) {
-      setScannedMember(null);
       setToast({
         visible: true,
         message: 'Failed to search member',
@@ -203,6 +205,12 @@ export default function PosScreen() {
         type={toast.type}
         onHide={() => setToast(prev => ({ ...prev, visible: false }))}
       />
+      <MemberNumpadModal
+        visible={isMemberModalVisible}
+        onClose={() => setIsMemberModalVisible(false)}
+        onScan={handleMemberScan}
+        loading={memberLoading}
+      />
       {/* Left Side: Item Grid */}
       <View style={styles.leftPane}>
         <View style={styles.header}>
@@ -245,24 +253,13 @@ export default function PosScreen() {
               </TouchableOpacity>
             </View>
           ) : (
-            <View style={styles.memberScanContainer}>
-              <TextInput
-                value={memberPhone}
-                onChangeText={setMemberPhone}
-                placeholder="Enter phone number"
-                style={styles.memberPhoneInput}
-                keyboardType="phone-pad"
-              />
-              <TouchableOpacity 
-                style={[styles.scanButton, memberLoading && styles.scanButtonDisabled]} 
-                onPress={handleMemberScan}
-                disabled={memberLoading}
-              >
-                <Text style={styles.scanButtonText}>
-                  {memberLoading ? 'Scanning...' : 'Scan'}
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={styles.addMemberButton}
+              onPress={() => setIsMemberModalVisible(true)}
+            >
+              <Ionicons name="person-add-outline" size={20} color="#2563eb" />
+              <Text style={styles.addMemberButtonText}>Add Member</Text>
+            </TouchableOpacity>
           )}
         </View>
       </View>
@@ -586,6 +583,22 @@ const styles = StyleSheet.create({
   },
   scanButtonText: {
     color: 'white',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  addMemberButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    borderRadius: 8,
+    padding: 12,
+    gap: 8,
+  },
+  addMemberButtonText: {
+    color: '#2563eb',
     fontWeight: '600',
     fontSize: 14,
   },
