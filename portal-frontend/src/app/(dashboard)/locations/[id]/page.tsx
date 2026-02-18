@@ -18,7 +18,7 @@ export default function EditLocationPage({ params }: { params: Promise<{ id: str
         name: '',
         address: '',
     });
-    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [errors, setErrors] = useState<Record<string, string[]>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -51,18 +51,18 @@ export default function EditLocationPage({ params }: { params: Promise<{ id: str
     };
 
     const validateForm = () => {
-        const newErrors: Record<string, string> = {};
+        const newErrors: Record<string, string[]> = {};
 
         if (!formData.code.trim()) {
-            newErrors.code = 'Location code is required';
+            newErrors.code = ['Location code is required'];
         }
 
         if (!formData.name.trim()) {
-            newErrors.name = 'Location name is required';
+            newErrors.name = ['Location name is required'];
         }
 
         if (!formData.address.trim()) {
-            newErrors.address = 'Address is required';
+            newErrors.address = ['Address is required'];
         }
 
         setErrors(newErrors);
@@ -75,13 +75,19 @@ export default function EditLocationPage({ params }: { params: Promise<{ id: str
         if (!validateForm()) return;
 
         setIsSubmitting(true);
+        setErrors({});
         try {
             await locationService.update(parseInt(id), formData);
             router.push('/locations');
         } catch (err: any) {
             console.error(err);
-            const message = err.response?.data?.message || 'Failed to update location. Please try again.';
-            setErrors({ submit: message });
+            if (err.response?.status === 422 && err.response.data?.errors) {
+                setErrors(err.response.data.errors);
+            } else if (err.response?.data?.message) {
+                setErrors({ submit: [err.response.data.message] });
+            } else {
+                setErrors({ submit: ['Failed to update location. Please try again.'] });
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -91,7 +97,9 @@ export default function EditLocationPage({ params }: { params: Promise<{ id: str
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
         if (errors[name]) {
-            setErrors(prev => ({ ...prev, [name]: '' }));
+            const newErrors = { ...errors };
+            delete newErrors[name];
+            setErrors(newErrors);
         }
     };
 
@@ -125,8 +133,8 @@ export default function EditLocationPage({ params }: { params: Promise<{ id: str
                 <form onSubmit={handleSubmit} className="divide-y divide-gray-100">
                     <div className="p-6 space-y-6">
                         {errors.submit && (
-                            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                                <p className="text-red-600 text-sm font-medium">{errors.submit}</p>
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-4 animate-in fade-in slide-in-from-top-1">
+                                <p className="text-red-600 text-sm font-medium">{errors.submit[0]}</p>
                             </div>
                         )}
 
@@ -143,12 +151,12 @@ export default function EditLocationPage({ params }: { params: Promise<{ id: str
                                         name="code"
                                         value={formData.code}
                                         onChange={handleChange}
-                                        className={`w-full pl-10 pr-4 py-2 bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all ${errors.code ? 'border-red-300' : 'border-gray-200'
+                                        className={`w-full pl-10 pr-4 py-2 bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-gray-900 ${errors.code ? 'border-red-300' : 'border-gray-200'
                                             }`}
                                         placeholder="LOC-XXXX"
                                     />
                                 </div>
-                                {errors.code && <p className="text-xs text-red-600 font-medium">{errors.code}</p>}
+                                {errors.code && <p className="text-xs text-red-600 font-medium animate-in fade-in slide-in-from-top-1">{errors.code[0]}</p>}
                             </div>
 
                             <div className="space-y-2">
@@ -163,12 +171,12 @@ export default function EditLocationPage({ params }: { params: Promise<{ id: str
                                         name="name"
                                         value={formData.name}
                                         onChange={handleChange}
-                                        className={`w-full pl-10 pr-4 py-2 bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all ${errors.name ? 'border-red-300' : 'border-gray-200'
+                                        className={`w-full pl-10 pr-4 py-2 bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-gray-900 ${errors.name ? 'border-red-300' : 'border-gray-200'
                                             }`}
                                         placeholder="e.g. Central Store"
                                     />
                                 </div>
-                                {errors.name && <p className="text-xs text-red-600 font-medium">{errors.name}</p>}
+                                {errors.name && <p className="text-xs text-red-600 font-medium animate-in fade-in slide-in-from-top-1">{errors.name[0]}</p>}
                             </div>
                         </div>
 
@@ -182,11 +190,11 @@ export default function EditLocationPage({ params }: { params: Promise<{ id: str
                                 value={formData.address}
                                 onChange={handleChange}
                                 rows={4}
-                                className={`w-full px-4 py-2 bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all ${errors.address ? 'border-red-300' : 'border-gray-200'
+                                className={`w-full px-4 py-2 bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-gray-900 ${errors.address ? 'border-red-300' : 'border-gray-200'
                                     }`}
                                 placeholder="Enter full address"
                             />
-                            {errors.address && <p className="text-xs text-red-600 font-medium">{errors.address}</p>}
+                            {errors.address && <p className="text-xs text-red-600 font-medium animate-in fade-in slide-in-from-top-1">{errors.address[0]}</p>}
                         </div>
                     </div>
 

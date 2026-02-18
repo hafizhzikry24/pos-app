@@ -16,18 +16,27 @@ export default function CreateItemPage() {
         is_active: true,
     });
     const [loading, setLoading] = useState(false);
+    const [errors, setErrors] = useState<Record<string, string[]>>({});
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setErrors({});
         try {
             await itemService.create({
                 ...formData,
                 price: parseFloat(formData.price),
             });
             router.push("/items");
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to create item", error);
+            if (error.response?.status === 422 && error.response.data?.errors) {
+                setErrors(error.response.data.errors);
+            } else if (error.response?.data?.message) {
+                setErrors({ general: [error.response.data.message] });
+            } else {
+                setErrors({ general: ["An unexpected error occurred. Please try again."] });
+            }
         } finally {
             setLoading(false);
         }
@@ -45,6 +54,12 @@ export default function CreateItemPage() {
                 <h2 className="text-2xl font-bold text-gray-800">Add New Item</h2>
             </div>
 
+            {errors.general && (
+                <div className="bg-red-50 text-red-600 p-4 rounded-lg text-sm border border-red-100 animate-in fade-in slide-in-from-top-1">
+                    {errors.general[0]}
+                </div>
+            )}
+
             <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -56,9 +71,12 @@ export default function CreateItemPage() {
                             required
                             value={formData.sku_code}
                             onChange={(e) => setFormData({ ...formData, sku_code: e.target.value })}
-                            className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                            className={`w-full px-4 py-2 rounded-lg border ${errors.sku_code ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-gray-900`}
                             placeholder="e.g. ITEM-001"
                         />
+                        {errors.sku_code && (
+                            <p className="mt-1 text-xs text-red-600">{errors.sku_code[0]}</p>
+                        )}
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -69,9 +87,12 @@ export default function CreateItemPage() {
                             required
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                            className={`w-full px-4 py-2 rounded-lg border ${errors.name ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-gray-900`}
                             placeholder="e.g. Mineral Water"
                         />
+                        {errors.name && (
+                            <p className="mt-1 text-xs text-red-600">{errors.name[0]}</p>
+                        )}
                     </div>
                 </div>
 
@@ -87,10 +108,13 @@ export default function CreateItemPage() {
                                 required
                                 value={formData.price}
                                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                className={`w-full pl-10 pr-4 py-2 rounded-lg border ${errors.price ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-gray-900`}
                                 placeholder="0"
                             />
                         </div>
+                        {errors.price && (
+                            <p className="mt-1 text-xs text-red-600">{errors.price[0]}</p>
+                        )}
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -99,7 +123,7 @@ export default function CreateItemPage() {
                         <select
                             value={formData.measure}
                             onChange={(e) => setFormData({ ...formData, measure: e.target.value })}
-                            className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                            className={`w-full px-4 py-2 rounded-lg border ${errors.measure ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-gray-900`}
                         >
                             <option value="pcs">Pcs</option>
                             <option value="kg">Kg</option>
@@ -107,6 +131,9 @@ export default function CreateItemPage() {
                             <option value="pack">Pack</option>
                             <option value="box">Box</option>
                         </select>
+                        {errors.measure && (
+                            <p className="mt-1 text-xs text-red-600">{errors.measure[0]}</p>
+                        )}
                     </div>
                 </div>
 

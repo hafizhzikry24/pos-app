@@ -20,7 +20,7 @@ export default function EditItemPage({ params }: { params: Promise<{ id: string 
         measure: '',
         is_active: true,
     });
-    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [errors, setErrors] = useState<Record<string, string[]>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -55,22 +55,22 @@ export default function EditItemPage({ params }: { params: Promise<{ id: string 
     };
 
     const validateForm = () => {
-        const newErrors: Record<string, string> = {};
+        const newErrors: Record<string, string[]> = {};
 
         if (!formData.name.trim()) {
-            newErrors.name = 'Item name is required';
+            newErrors.name = ['Item name is required'];
         }
 
         if (!formData.sku_code.trim()) {
-            newErrors.sku_code = 'SKU code is required';
+            newErrors.sku_code = ['SKU code is required'];
         }
 
         if (!formData.price || isNaN(parseFloat(formData.price))) {
-            newErrors.price = 'Valid price is required';
+            newErrors.price = ['Valid price is required'];
         }
 
         if (!formData.measure.trim()) {
-            newErrors.measure = 'Measure unit is required (e.g., kg, pcs)';
+            newErrors.measure = ['Measure unit is required (e.g., kg, pcs)'];
         }
 
         setErrors(newErrors);
@@ -83,6 +83,7 @@ export default function EditItemPage({ params }: { params: Promise<{ id: string 
         if (!validateForm()) return;
 
         setIsSubmitting(true);
+        setErrors({});
         try {
             await itemService.update(parseInt(id), {
                 ...formData,
@@ -91,8 +92,13 @@ export default function EditItemPage({ params }: { params: Promise<{ id: string 
             router.push('/items');
         } catch (err: any) {
             console.error(err);
-            const message = err.response?.data?.message || 'Failed to update item. Please try again.';
-            setErrors({ submit: message });
+            if (err.response?.status === 422 && err.response.data?.errors) {
+                setErrors(err.response.data.errors);
+            } else if (err.response?.data?.message) {
+                setErrors({ submit: [err.response.data.message] });
+            } else {
+                setErrors({ submit: ['Failed to update item. Please try again.'] });
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -104,7 +110,9 @@ export default function EditItemPage({ params }: { params: Promise<{ id: string 
 
         setFormData(prev => ({ ...prev, [name]: val }));
         if (errors[name]) {
-            setErrors(prev => ({ ...prev, [name]: '' }));
+            const newErrors = { ...errors };
+            delete newErrors[name];
+            setErrors(newErrors);
         }
     };
 
@@ -137,104 +145,99 @@ export default function EditItemPage({ params }: { params: Promise<{ id: string 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <form onSubmit={handleSubmit} className="divide-y divide-gray-100">
                     <div className="p-6 space-y-6">
-                        {errors.submit && (
-                            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                                <p className="text-red-600 text-sm font-medium">{errors.submit}</p>
-                            </div>
-                        )}
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <label htmlFor="name" className="text-sm font-semibold text-gray-700">
-                                    Item Name *
-                                </label>
-                                <div className="relative">
-                                    <input
-                                        type="text"
-                                        id="name"
-                                        name="name"
-                                        value={formData.name}
-                                        onChange={handleChange}
-                                        className={`w-full px-4 py-2 bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all ${errors.name ? 'border-red-300' : 'border-gray-200'
-                                            }`}
-                                        placeholder="e.g. Daging A4"
-                                    />
-                                </div>
-                                {errors.name && <p className="text-xs text-red-600 font-medium">{errors.name}</p>}
-                            </div>
-
-                            <div className="space-y-2">
-                                <label htmlFor="sku_code" className="text-sm font-semibold text-gray-700">
-                                    SKU Code *
-                                </label>
-                                <div className="relative">
-                                    <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                    <input
-                                        type="text"
-                                        id="sku_code"
-                                        name="sku_code"
-                                        value={formData.sku_code}
-                                        onChange={handleChange}
-                                        className={`w-full pl-10 pr-4 py-2 bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all ${errors.sku_code ? 'border-red-300' : 'border-gray-200'
-                                            }`}
-                                        placeholder="SKU-XXXXXX"
-                                    />
-                                </div>
-                                {errors.sku_code && <p className="text-xs text-red-600 font-medium">{errors.sku_code}</p>}
-                            </div>
-
-                            <div className="space-y-2">
-                                <label htmlFor="price" className="text-sm font-semibold text-gray-700">
-                                    Price (IDR) *
-                                </label>
-                                <div className="relative">
-                                    <input
-                                        type="number"
-                                        id="price"
-                                        name="price"
-                                        value={formData.price}
-                                        onChange={handleChange}
-                                        step="0.01"
-                                        className={`w-full pl-10 pr-4 py-2 bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all ${errors.price ? 'border-red-300' : 'border-gray-200'
-                                            }`}
-                                        placeholder="0.00"
-                                    />
-                                </div>
-                                {errors.price && <p className="text-xs text-red-600 font-medium">{errors.price}</p>}
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Unit Measure
-                                </label>
-                                <select
-                                    value={formData.measure}
-                                    onChange={(e) => setFormData({ ...formData, measure: e.target.value })}
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                                >
-                                    <option value="pcs">Pcs</option>
-                                    <option value="kg">Kg</option>
-                                    <option value="ltr">Liter</option>
-                                    <option value="pack">Pack</option>
-                                    <option value="box">Box</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 p-4 bg-gray-50 rounded-lg">
-                            <input
-                                type="checkbox"
-                                id="is_active"
-                                name="is_active"
-                                checked={formData.is_active}
-                                onChange={handleChange}
-                                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                            />
-                            <label htmlFor="is_active" className="text-sm font-medium text-gray-700 flex flex-col">
-                                <span>Active Status</span>
-                                <span className="text-xs text-gray-500 leading-none">Inactive items won't appear in the POS system</span>
+                        <div className="space-y-2">
+                            <label htmlFor="name" className="text-sm font-semibold text-gray-700">
+                                Item Name *
                             </label>
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    id="name"
+                                    name="name"
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                    className={`w-full px-4 py-2 bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-gray-900 ${errors.name ? 'border-red-300' : 'border-gray-200'
+                                        }`}
+                                    placeholder="e.g. Daging A4"
+                                />
+                            </div>
+                            {errors.name && <p className="text-xs text-red-600 font-medium animate-in fade-in slide-in-from-top-1">{errors.name[0]}</p>}
                         </div>
+
+                        <div className="space-y-2">
+                            <label htmlFor="sku_code" className="text-sm font-semibold text-gray-700">
+                                SKU Code *
+                            </label>
+                            <div className="relative">
+                                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <input
+                                    type="text"
+                                    id="sku_code"
+                                    name="sku_code"
+                                    value={formData.sku_code}
+                                    onChange={handleChange}
+                                    className={`w-full pl-10 pr-4 py-2 bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-gray-900 ${errors.sku_code ? 'border-red-300' : 'border-gray-200'
+                                        }`}
+                                    placeholder="SKU-XXXXXX"
+                                />
+                            </div>
+                            {errors.sku_code && <p className="text-xs text-red-600 font-medium animate-in fade-in slide-in-from-top-1">{errors.sku_code[0]}</p>}
+                        </div>
+
+                        <div className="space-y-2">
+                            <label htmlFor="price" className="text-sm font-semibold text-gray-700">
+                                Price (IDR) *
+                            </label>
+                            <div className="relative">
+                                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <input
+                                    type="number"
+                                    id="price"
+                                    name="price"
+                                    value={formData.price}
+                                    onChange={handleChange}
+                                    step="0.01"
+                                    className={`w-full pl-10 pr-4 py-2 bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-gray-900 ${errors.price ? 'border-red-300' : 'border-gray-200'
+                                        }`}
+                                    placeholder="0.00"
+                                />
+                            </div>
+                            {errors.price && <p className="text-xs text-red-600 font-medium animate-in fade-in slide-in-from-top-1">{errors.price[0]}</p>}
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Unit Measure
+                            </label>
+                            <select
+                                value={formData.measure}
+                                name="measure"
+                                onChange={handleChange}
+                                className={`w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-gray-900 ${errors.measure ? 'border-red-300' : 'border-gray-300'}`}
+                            >
+                                <option value="pcs">Pcs</option>
+                                <option value="kg">Kg</option>
+                                <option value="ltr">Liter</option>
+                                <option value="pack">Pack</option>
+                                <option value="box">Box</option>
+                            </select>
+                            {errors.measure && <p className="text-xs text-red-600 font-medium animate-in fade-in slide-in-from-top-1">{errors.measure[0]}</p>}
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 p-4 bg-gray-50 rounded-lg">
+                        <input
+                            type="checkbox"
+                            id="is_active"
+                            name="is_active"
+                            checked={formData.is_active}
+                            onChange={handleChange}
+                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <label htmlFor="is_active" className="text-sm font-medium text-gray-700 flex flex-col">
+                            <span>Active Status</span>
+                            <span className="text-xs text-gray-500 leading-none">Inactive items won't appear in the POS system</span>
+                        </label>
                     </div>
 
                     <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3">
