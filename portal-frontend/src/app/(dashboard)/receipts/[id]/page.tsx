@@ -21,7 +21,11 @@ export default function ReceiptDetailPage() {
 
     const fetchReceipt = async () => {
         try {
-            const data = await receiptService.getById(Number(id));
+            // Get table info from localStorage or URL params if available
+            const urlParams = new URLSearchParams(window.location.search);
+            const tableSuffix = urlParams.get('table') || localStorage.getItem('receiptTable_' + id) || undefined;
+            
+            const data = await receiptService.getById(Number(id), tableSuffix);
             setReceipt(data);
         } catch (error) {
             console.error("Failed to fetch receipt", error);
@@ -33,7 +37,11 @@ export default function ReceiptDetailPage() {
     const handleDelete = async () => {
         if (!confirm("Are you sure you want to delete this receipt?")) return;
         try {
-            await receiptService.delete(Number(id));
+            // Get table info from localStorage or URL params if available
+            const urlParams = new URLSearchParams(window.location.search);
+            const tableSuffix = urlParams.get('table') || localStorage.getItem('receiptTable_' + id) || undefined;
+            
+            await receiptService.delete(Number(id), tableSuffix);
             router.push("/receipts");
         } catch (error) {
             console.error("Failed to delete receipt", error);

@@ -32,6 +32,12 @@ export interface Receipt {
     location?: any;
     cashier?: any;
     customer?: any;
+    table_info?: {
+        date: string;
+        suffix: string;
+        receipts_table: string;
+        receipt_items_table: string;
+    };
 }
 
 export const receiptService = {
@@ -39,12 +45,18 @@ export const receiptService = {
         const response = await api.get<Receipt[]>("/receipts");
         return response.data;
     },
-    getById: async (id: number) => {
-        const response = await api.get<Receipt>(`/receipts/${id}`);
+    getById: async (id: number, tableSuffix?: string) => {
+        const url = tableSuffix 
+            ? `/receipts/${id}?table=${tableSuffix}`
+            : `/receipts/${id}`;
+        const response = await api.get<Receipt>(url);
         return response.data;
     },
-    delete: async (id: number) => {
-        const response = await api.delete<any>(`/receipts/${id}`);
+    delete: async (id: number, tableSuffix?: string) => {
+        const url = tableSuffix 
+            ? `/receipts/${id}?table=${tableSuffix}`
+            : `/receipts/${id}`;
+        const response = await api.delete<any>(url);
         return response.data;
     },
 };

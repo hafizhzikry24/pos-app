@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Interfaces\ReceiptRepositoryInterface;
+use App\Services\ReceiptShardingService;
 use Illuminate\Support\Facades\DB;
 use Exception;
 
@@ -37,6 +38,18 @@ class ReceiptService
     }
 
     /**
+     * Get receipt by ID from a specific month's table.
+     * 
+     * @param int $id
+     * @param string $date
+     * @return \App\Models\Receipt
+     */
+    public function getReceiptByIdAndDate($id, $date)
+    {
+        return ReceiptShardingService::findReceipt($id, $date);
+    }
+
+    /**
      * @param string $number
      * @return \App\Models\Receipt
      */
@@ -56,10 +69,15 @@ class ReceiptService
     public function createTransaction(array $receiptData, array $items)
     {
         return DB::transaction(function () use ($receiptData, $items) {
-            $receipt = $this->repository->create($receiptData);
+            // Create receipt using sharding service
+            $receipt = ReceiptShardingService::createReceipt($receiptData);
 
+            // Create receipt items using sharding service
+            $receiptItemsModel = ReceiptShardingService::createReceiptItemModel();
+            
             foreach ($items as $item) {
-                $receipt->receiptItems()->create([
+                $receiptItemsModel->create([
+                    'receipt_id' => $receipt->id,
                     'item_id' => $item['item_id'],
                     'name' => $item['name'],
                     'quantity' => $item['quantity'],
@@ -69,7 +87,14 @@ class ReceiptService
                 ]);
             }
 
-            return $receipt->load('receiptItems');
+            // Load receipt items from the sharded table
+            $receipt->setRelation('receiptItems', 
+                ReceiptShardingService::getReceiptItemsQuery()
+                    ->where('receipt_id', $receipt->id)
+                    ->get()
+            );
+
+            return $receipt;
         });
     }
 
@@ -80,5 +105,32 @@ class ReceiptService
     public function deleteReceipt($id)
     {
         return $this->repository->delete($id);
+    }
+
+    /**
+     * Delete receipt from a specific month's table.
+     * 
+     * @param int $id
+     * @param string $date
+     * @return bool
+     */
+    public function deleteReceiptInDate($id, $date)
+    {
+        $receipt = ReceiptShardingService::findReceipt($id, $date);
+        
+        if (!$receipt) {
+            throw new \Exception("Receipt not found in " . $date . " table");
+        }
+        
+        // Get receipt items from the same sharded table
+        $receiptItems = ReceiptShardingService::findReceiptItems($receipt->id, $date);
+        
+        // Soft delete all receipt items first
+        foreach ($receiptItems as $item) {
+            $item->delete();
+        }
+        
+        // Then soft delete the receipt
+        return $receipt->delete();
     }
 }
