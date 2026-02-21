@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { itemService } from '@/services/itemService';
 import { freeItemService, FreeItem, CheckEligibilityRequest } from '@/services/freeItemService';
 import { receiptService, ReceiptData } from '@/services/receiptService';
+import { DisplayService } from '@/services/displayService';
 import { useAuth } from '@/context/AuthContext';
 
 // Helper functions
@@ -140,6 +141,13 @@ export default function ModalScreen() {
       };
 
       await receiptService.create(receiptData);
+
+      // Clear the dual screen display after successful payment
+      try {
+        await DisplayService.updateCart([]);
+      } catch (error) {
+        console.log('Failed to clear secondary display:', error);
+      }
 
       Alert.alert("Success", "Transaction completed!", [
         {

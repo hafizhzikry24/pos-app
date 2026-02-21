@@ -3,4 +3,22 @@
   <color name="iconBackground">#E6F4FE</color>
   <color name="colorPrimary">#023c69</color>
   <color name="colorPrimaryDark">#ffffff</color>
+
+  <!-- Customer Display Colors - Matching Main App Light Theme -->
+  <color name="cd_bg_start">#f3f4f6</color>
+  <color name="cd_bg_mid">#ffffff</color>
+  <color name="cd_bg_end">#ffffff</color>
+  <color name="cd_accent">#2563eb</color>
+  <color name="cd_accent_dark">#1d4ed8</color>
+  <color name="cd_surface">#ffffff</color>
+  <color name="cd_surface_light">#f9fafb</color>
+  <color name="cd_card">#ffffff</color>
+  <color name="cd_text_primary">#1f2937</color>
+  <color name="cd_text_secondary">#6b7280</color>
+  <color name="cd_text_muted">#9ca3af</color>
+  <color name="cd_divider">#e5e7eb</color>
+  <color name="cd_badge_bg">#2563eb</color>
+  <color name="cd_badge_text">#ffffff</color>
+  <color name="cd_total_bg">#2563eb</color>
+  <color name="cd_total_text">#ffffff</color>
 </resources>

@@ -30,9 +30,11 @@ export default function PosScreen() {
   const [isMemberModalVisible, setIsMemberModalVisible] = useState(false);
 
   useEffect(() => {
+    // Initialize secondary display on app startup (no login required)
+    initializeSecondaryDisplay();
+    
     if (token) {
       fetchItems();
-      initializeSecondaryDisplay();
     }
   }, [token]);
 
