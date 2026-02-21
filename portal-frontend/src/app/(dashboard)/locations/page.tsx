@@ -4,10 +4,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Location, locationService, PaginatedResponse } from "@/services/locationService";
 import { Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight, MapPin } from "lucide-react";
+import { useRouter } from 'next/navigation';
+import { useAuth } from "@/hooks/useAuth";
+
 
 export default function LocationListPage() {
     const [locations, setLocations] = useState<Location[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { user, loading } = useAuth();
     const [search, setSearch] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [pagination, setPagination] = useState({
@@ -16,23 +19,20 @@ export default function LocationListPage() {
         per_page: 10,
         total: 0
     });
+    const router = useRouter();
 
     useEffect(() => {
-        fetchLocations();
-    }, []);
-
-    useEffect(() => {
-        setCurrentPage(1);
-        fetchLocations();
-    }, [search]);
-
-    useEffect(() => {
-        fetchLocations();
-    }, [currentPage]);
+        if (!loading && !user) {
+            router.push('/login');
+        }
+        if (user) {
+            setCurrentPage(1);
+            fetchLocations();
+        }
+    }, [user, loading, router, search, currentPage]);
 
     const fetchLocations = async () => {
         try {
-            setLoading(true);
             const data: PaginatedResponse<Location> = await locationService.getPaginated(search, currentPage, 10);
             setLocations(data.data);
             setPagination({
@@ -43,8 +43,6 @@ export default function LocationListPage() {
             });
         } catch (error) {
             console.error("Failed to fetch locations", error);
-        } finally {
-            setLoading(false);
         }
     };
 

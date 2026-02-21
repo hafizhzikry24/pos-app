@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 export default function DashboardPage() {
-    const { user, logout, loading } = useAuth();
+    const { user, loading } = useAuth();
     const [cashiers, setCashiers] = useState<Cashier[]>([]);
     const [search, setSearch] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
@@ -24,22 +24,10 @@ export default function DashboardPage() {
             router.push('/login');
         }
         if (user) {
-            loadCashiers();
-        }
-    }, [user, loading, router]);
-
-    useEffect(() => {
-        if (user) {
             setCurrentPage(1);
             loadCashiers();
         }
-    }, [search]);
-
-    useEffect(() => {
-        if (user) {
-            loadCashiers();
-        }
-    }, [currentPage]);
+    }, [user, loading, router, search, currentPage]);
 
     const loadCashiers = async () => {
         try {

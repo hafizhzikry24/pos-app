@@ -25,22 +25,10 @@ export default function FreeItemsPage() {
             router.push('/login');
         }
         if (user) {
-            loadFreeItems();
-        }
-    }, [user, loading, router]);
-
-    useEffect(() => {
-        if (user) {
             setCurrentPage(1);
             loadFreeItems();
         }
-    }, [search]);
-
-    useEffect(() => {
-        if (user) {
-            loadFreeItems();
-        }
-    }, [currentPage]);
+    }, [user, loading, router, search, currentPage]);
 
     const loadFreeItems = async () => {
         try {

@@ -5,11 +5,13 @@ import Link from "next/link";
 import { Item, itemService, PaginatedResponse } from "@/services/itemService";
 import { Plus, Edit, Trash2, Package, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { useRouter } from "next/navigation";
 
 export default function ItemListPage() {
     const [items, setItems] = useState<Item[]>([]);
-    const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const { user, loading } = useAuth();
     const [currentPage, setCurrentPage] = useState(1);
     const [pagination, setPagination] = useState({
         current_page: 1,
@@ -17,23 +19,21 @@ export default function ItemListPage() {
         per_page: 10,
         total: 0
     });
+    const router = useRouter();
+    
 
     useEffect(() => {
-        fetchItems();
-    }, []);
-
-    useEffect(() => {
-        setCurrentPage(1);
-        fetchItems();
-    }, [search]);
-
-    useEffect(() => {
-        fetchItems();
-    }, [currentPage]);
+        if (!loading && !user) {
+            router.push('/login');
+        }
+        if (user) {
+            setCurrentPage(1);
+            fetchItems();
+        }
+    }, [user, loading, router, search, currentPage]);
 
     const fetchItems = async () => {
         try {
-            setLoading(true);
             const data: PaginatedResponse<Item> = await itemService.getPaginated(search, currentPage, 10);
             setItems(data.data);
             setPagination({
@@ -44,8 +44,6 @@ export default function ItemListPage() {
             });
         } catch (error) {
             console.error("Failed to fetch items", error);
-        } finally {
-            setLoading(false);
         }
     };
 

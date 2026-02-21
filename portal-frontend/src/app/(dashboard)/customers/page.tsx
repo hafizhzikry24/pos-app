@@ -24,22 +24,10 @@ export default function CustomersPage() {
             router.push('/login');
         }
         if (user) {
-            loadCustomers();
-        }
-    }, [user, loading, router]);
-
-    useEffect(() => {
-        if (user) {
             setCurrentPage(1);
             loadCustomers();
         }
-    }, [search]);
-
-    useEffect(() => {
-        if (user) {
-            loadCustomers();
-        }
-    }, [currentPage]);
+    }, [user, loading, router, search, currentPage]);
 
     const loadCustomers = async () => {
         try {

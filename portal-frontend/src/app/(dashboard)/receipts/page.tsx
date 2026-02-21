@@ -5,31 +5,32 @@ import Link from "next/link";
 import { Receipt, receiptService, PaginatedResponse } from "@/services/receiptService";
 import { FileText, Eye, Package, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { useRouter } from "next/navigation";
 
 export default function ReceiptListPage() {
     const [receipts, setReceipts] = useState<Receipt[]>([]);
-    const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const { user, loading } = useAuth();
     const [currentPage, setCurrentPage] = useState(1);
     const [pagination, setPagination] = useState({
         current_page: 1,
         last_page: 1,
         per_page: 10,
         total: 0
-    });
+    });    
+    const router = useRouter();    
 
     useEffect(() => {
-        fetchReceipts();
-    }, []);
+        if (!loading && !user) {
+            router.push('/login');
+        }
+        if (user) {
+            setCurrentPage(1);
+            fetchReceipts();
+        }
+    }, [search, currentPage, user, loading, router]);
 
-    useEffect(() => {
-        setCurrentPage(1);
-        fetchReceipts();
-    }, [search]);
-
-    useEffect(() => {
-        fetchReceipts();
-    }, [currentPage]);
 
     const handleViewReceipt = (receipt: Receipt) => {
         // Store table info in localStorage for the detail page
@@ -46,7 +47,6 @@ export default function ReceiptListPage() {
 
     const fetchReceipts = async () => {
         try {
-            setLoading(true);
             const data: PaginatedResponse<Receipt> = await receiptService.getPaginated(search, currentPage, 10);
             setReceipts(data.data || []);
             setPagination({
@@ -57,8 +57,6 @@ export default function ReceiptListPage() {
             });
         } catch (error) {
             console.error("Failed to fetch receipts", error);
-        } finally {
-            setLoading(false);
         }
     };
 
