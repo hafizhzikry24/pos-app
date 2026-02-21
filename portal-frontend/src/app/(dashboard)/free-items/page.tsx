@@ -1,15 +1,23 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { freeItemService, FreeItem } from '@/services/freeItem';
+import { freeItemService, FreeItem, PaginatedResponse } from '@/services/freeItem';
 import { Item } from '@/services/itemService';
-import { Plus, Pencil, Trash2, Gift, DollarSign, Package, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Gift, DollarSign, Package, CheckCircle, XCircle, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 export default function FreeItemsPage() {
     const { user, logout, loading } = useAuth();
     const [freeItems, setFreeItems] = useState<FreeItem[]>([]);
+    const [search, setSearch] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pagination, setPagination] = useState({
+        current_page: 1,
+        last_page: 1,
+        per_page: 10,
+        total: 0
+    });
     const router = useRouter();
 
     useEffect(() => {
@@ -21,10 +29,29 @@ export default function FreeItemsPage() {
         }
     }, [user, loading, router]);
 
+    useEffect(() => {
+        if (user) {
+            setCurrentPage(1);
+            loadFreeItems();
+        }
+    }, [search]);
+
+    useEffect(() => {
+        if (user) {
+            loadFreeItems();
+        }
+    }, [currentPage]);
+
     const loadFreeItems = async () => {
         try {
-            const data = await freeItemService.getAll();
-            setFreeItems(data);
+            const data: PaginatedResponse<FreeItem> = await freeItemService.getPaginated(search, currentPage, 10);
+            setFreeItems(data.data);
+            setPagination({
+                current_page: data.current_page,
+                last_page: data.last_page,
+                per_page: data.per_page,
+                total: data.total
+            });
         } catch (err) {
             console.error(err);
         }
@@ -58,6 +85,20 @@ export default function FreeItemsPage() {
                     <Plus className="w-4 h-4" />
                     Add Free Item
                 </Link>
+            </div>
+
+            {/* Search Bar */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                <div className="relative max-w-md">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <input
+                        type="text"
+                        placeholder="Search by name or description..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                    />
+                </div>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -165,7 +206,7 @@ export default function FreeItemsPage() {
                                         <div className="flex flex-col items-center gap-2">
                                             <Gift className="w-8 h-8 text-gray-400 mb-2" />
                                             <p className="font-medium">No free items found</p>
-                                            <p className="text-sm">Get started by adding a new free item promotion.</p>
+                                            <p className="text-sm">Try adjusting your search or add a new free item promotion.</p>
                                         </div>
                                     </td>
                                 </tr>
@@ -174,6 +215,36 @@ export default function FreeItemsPage() {
                     </table>
                 </div>
             </div>
+
+            {/* Pagination */}
+            {pagination.last_page >= 1 && (
+                <div className="flex items-center justify-between bg-white px-4 py-3 border border-gray-200 rounded-lg shadow-sm">
+                    <div className="text-sm text-gray-700">
+                        Showing <span className="font-medium">{(pagination.current_page - 1) * pagination.per_page + 1}</span> to{' '}
+                        <span className="font-medium">{Math.min(pagination.current_page * pagination.per_page, pagination.total)}</span> of{' '}
+                        <span className="font-medium">{pagination.total}</span> results
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            disabled={pagination.current_page === 1}
+                            className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <ChevronLeft className="w-4 h-4 text-gray-900" />
+                        </button>
+                        <span className="text-sm text-gray-700 px-3">
+                            Page {pagination.current_page} of {pagination.last_page}
+                        </span>
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.min(pagination.last_page, prev + 1))}
+                            disabled={pagination.current_page === pagination.last_page}
+                            className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <ChevronRight className="w-4 h-4 text-gray-900" />
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

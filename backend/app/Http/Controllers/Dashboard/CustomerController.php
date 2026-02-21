@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateCustomerRequest;
 use App\Http\Responses\MessageResponse;
 use Exception;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class CustomerController extends Controller
 {
@@ -19,10 +20,13 @@ class CustomerController extends Controller
         $this->customerRepository = $customerRepository;
     }
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         try {
-            $customers = $this->customerRepository->getAll();
+            $search = $request->get('search');
+            $perPage = $request->get('per_page', 10);
+            
+            $customers = $this->customerRepository->getPaginatedWithSearch($search, $perPage);
             return MessageResponse::success($customers, 'Customers retrieved successfully');
         } catch (Exception $e) {
             return MessageResponse::serverError($e->getMessage());

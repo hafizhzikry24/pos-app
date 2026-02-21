@@ -2,22 +2,46 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Item, itemService } from "@/services/itemService";
-import { Plus, Edit, Trash2, Package } from "lucide-react";
+import { Item, itemService, PaginatedResponse } from "@/services/itemService";
+import { Plus, Edit, Trash2, Package, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function ItemListPage() {
     const [items, setItems] = useState<Item[]>([]);
     const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pagination, setPagination] = useState({
+        current_page: 1,
+        last_page: 1,
+        per_page: 10,
+        total: 0
+    });
 
     useEffect(() => {
         fetchItems();
     }, []);
 
+    useEffect(() => {
+        setCurrentPage(1);
+        fetchItems();
+    }, [search]);
+
+    useEffect(() => {
+        fetchItems();
+    }, [currentPage]);
+
     const fetchItems = async () => {
         try {
-            const data = await itemService.getAll();
-            setItems(data);
+            setLoading(true);
+            const data: PaginatedResponse<Item> = await itemService.getPaginated(search, currentPage, 10);
+            setItems(data.data);
+            setPagination({
+                current_page: data.current_page,
+                last_page: data.last_page,
+                per_page: data.per_page,
+                total: data.total
+            });
         } catch (error) {
             console.error("Failed to fetch items", error);
         } finally {
@@ -37,7 +61,10 @@ export default function ItemListPage() {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-white">Items</h2>
+                <div>
+                    <h2 className="text-2xl font-bold text-white">Items</h2>
+                    <p className="text-sm text-gray-500 mt-1">Manage your product inventory and pricing.</p>
+                </div>
                 <Link
                     href="/items/create"
                     className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors"
@@ -45,6 +72,20 @@ export default function ItemListPage() {
                     <Plus size={20} />
                     Add Item
                 </Link>
+            </div>
+
+            {/* Search Bar */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                <div className="relative max-w-md">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <input
+                        type="text"
+                        placeholder="Search by name or SKU code..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                    />
+                </div>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -65,6 +106,7 @@ export default function ItemListPage() {
                                     <div className="flex flex-col items-center gap-2">
                                         <Package className="w-8 h-8 text-gray-400" />
                                         <span>No items found.</span>
+                                        <p className="text-sm">Try adjusting your search or add a new item.</p>
                                     </div>
                                 </td>
                             </tr>
@@ -112,6 +154,36 @@ export default function ItemListPage() {
                     </tbody>
                 </table>
             </div>
+
+            {/* Pagination */}
+            {pagination.last_page >= 1 && (
+                <div className="flex items-center justify-between bg-white px-4 py-3 border border-gray-200 rounded-lg shadow-sm">
+                    <div className="text-sm text-gray-700">
+                        Showing <span className="font-medium">{(pagination.current_page - 1) * pagination.per_page + 1}</span> to{' '}
+                        <span className="font-medium">{Math.min(pagination.current_page * pagination.per_page, pagination.total)}</span> of{' '}
+                        <span className="font-medium">{pagination.total}</span> results
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            disabled={pagination.current_page === 1}
+                            className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <ChevronLeft className="w-4 h-4 text-gray-900" />
+                        </button>
+                        <span className="text-sm text-gray-700 px-3">
+                            Page {pagination.current_page} of {pagination.last_page}
+                        </span>
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.min(pagination.last_page, prev + 1))}
+                            disabled={pagination.current_page === pagination.last_page}
+                            className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <ChevronRight className="w-4 h-4 text-gray-900" />
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

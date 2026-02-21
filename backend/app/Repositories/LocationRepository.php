@@ -12,6 +12,27 @@ class LocationRepository implements LocationRepositoryInterface
         return Location::all();
     }
 
+    /**
+     * Get paginated locations with search functionality
+     * 
+     * @param string|null $search
+     * @param int $perPage
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     */
+    public function getPaginatedWithSearch(?string $search = null, int $perPage = 10)
+    {
+        $query = Location::query();
+        
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'LIKE', "%{$search}%")
+                  ->orWhere('code', 'LIKE', "%{$search}%");
+            });
+        }
+        
+        return $query->orderBy('name')->paginate($perPage);
+    }
+
     public function getById($id)
     {
         return Location::findOrFail($id);

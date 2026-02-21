@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateCashierRequest;
 use App\Http\Responses\MessageResponse;
 use Exception;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class CashierController extends Controller
 {
@@ -19,10 +20,13 @@ class CashierController extends Controller
         $this->cashierService = $cashierService;
     }
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         try {
-            $cashiers = $this->cashierService->getAllCashiers();
+            $search = $request->get('search');
+            $perPage = $request->get('per_page', 10);
+            
+            $cashiers = $this->cashierService->getPaginatedWithSearch($search, $perPage);
             return MessageResponse::success($cashiers, 'Cashiers retrieved successfully');
         } catch (Exception $e) {
             return MessageResponse::serverError($e->getMessage());

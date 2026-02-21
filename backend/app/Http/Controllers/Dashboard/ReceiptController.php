@@ -22,10 +22,13 @@ class ReceiptController extends Controller
      * Display a listing of receipts.
      * @return JsonResponse
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         try {
-            $receipts = $this->service->getAllReceipts();
+            $search = $request->get('search');
+            $perPage = $request->get('per_page', 10);
+            
+            $receipts = $this->service->getPaginatedWithSearch($search, $perPage);
             return MessageResponse::success($receipts, 'Receipts retrieved successfully');
         } catch (Exception $e) {
             return MessageResponse::serverError($e->getMessage());
