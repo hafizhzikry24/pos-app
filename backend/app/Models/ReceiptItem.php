@@ -25,6 +25,7 @@ class ReceiptItem extends Model
         'price',
         'discount',
         'total',
+        'is_free_item',
     ];
 
     /**
@@ -36,6 +37,7 @@ class ReceiptItem extends Model
         'price' => 'decimal:2',
         'discount' => 'decimal:2',
         'total' => 'decimal:2',
+        'is_free_item' => 'boolean',
     ];
 
     /**

@@ -76,13 +76,14 @@ class shardingReceiptTable extends Command
         Schema::create($tableName, function ($table) {
             $table->id();
             $table->string('number')->unique();
-            $table->unsignedBigInteger('location_id')->index('r_li');
-            $table->unsignedBigInteger('cashier_id')->index('r_ci');
+            $table->unsignedBigInteger('location_id')->index('r_l');
+            $table->unsignedBigInteger('cashier_id')->index('r_c');
             $table->unsignedBigInteger('customer_id')->nullable()->index('r_cu');
             $table->decimal('total_amount', 15, 2);
             $table->decimal('discount_amount', 15, 2)->default(0);
             $table->decimal('tax_amount', 15, 2)->default(0);
             $table->decimal('payable_amount', 15, 2);
+            $table->decimal('change_amount', 15, 2)->default(0);
             $table->string('payment_method');
             $table->string('status')->default('completed');
             $table->text('note')->nullable();
@@ -112,6 +113,7 @@ class shardingReceiptTable extends Command
             $table->decimal('price', 15, 2);
             $table->decimal('discount', 15, 2)->default(0);
             $table->decimal('total', 15, 2);
+            $table->boolean('is_free_item')->default(false);
             $table->timestamps();
             $table->softDeletes()->index('receipt_items_deleted_at');
         });

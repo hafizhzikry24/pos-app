@@ -9,6 +9,7 @@ export interface ReceiptItem {
     price: string;
     discount: string;
     total: string;
+    is_free_item: boolean;
     created_at: string;
     updated_at: string;
 }
@@ -23,6 +24,7 @@ export interface Receipt {
     discount_amount: string;
     tax_amount: string;
     payable_amount: string;
+    change_amount: string;
     payment_method: string;
     status: string;
     note: string | null;

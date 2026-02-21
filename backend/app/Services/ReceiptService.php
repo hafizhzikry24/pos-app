@@ -84,6 +84,7 @@ class ReceiptService
                     'price' => $item['price'],
                     'discount' => $item['discount'] ?? 0,
                     'total' => $item['total'],
+                    'is_free_item' => $item['is_free_item'] ?? false,
                 ]);
             }
 

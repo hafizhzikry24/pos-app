@@ -160,9 +160,30 @@ class ReceiptShardingService
      */
     public static function findReceipt(int $id, $date = null)
     {
-        return self::getReceiptsQuery($date)
-            ->with(['receiptItems', 'location', 'cashier', 'customer'])
+        $receipt = self::getReceiptsQuery($date)
             ->find($id);
+        
+        if ($receipt) {
+            // Manually load receipt items from the same sharded table
+            $receiptItems = self::getReceiptItemsQuery($date)
+                ->where('receipt_id', $receipt->id)
+                ->get();
+            
+            $receipt->setRelation('receiptItems', $receiptItems);
+            
+            // Load other relationships normally
+            $receipt->load(['location', 'cashier', 'customer']);
+            
+            // Add table info to the receipt
+            $receipt->table_info = [
+                'date' => $date ? Carbon::parse($date)->format('Y-m') : Carbon::now()->format('Y-m'),
+                'suffix' => self::getTableSuffix($date),
+                'receipts_table' => self::getReceiptsTableName($date),
+                'receipt_items_table' => self::getReceiptItemsTableName($date),
+            ];
+        }
+        
+        return $receipt;
     }
 
     /**
@@ -256,10 +277,15 @@ class ReceiptShardingService
     {
         // First, check the original table
         try {
-            $receipt = \App\Models\Receipt::with(['receiptItems', 'location', 'cashier', 'customer'])
-                ->find($id);
+            $receipt = \App\Models\Receipt::find($id);
             
             if ($receipt) {
+                // Load receipt items from original table
+                $receipt->setRelation('receiptItems', $receipt->receiptItems);
+                
+                // Load other relationships
+                $receipt->load(['location', 'cashier', 'customer']);
+                
                 $receipt->table_info = [
                     'date' => 'original',
                     'suffix' => 'original',
@@ -278,17 +304,9 @@ class ReceiptShardingService
         foreach ($suffixes as $suffix) {
             try {
                 $date = Carbon::createFromFormat('Ym', $suffix);
-                $receipt = self::getReceiptsQuery($date)
-                    ->with(['receiptItems', 'location', 'cashier', 'customer'])
-                    ->find($id);
+                $receipt = self::findReceipt($id, $date);
                 
                 if ($receipt) {
-                    $receipt->table_info = [
-                        'date' => $date->format('Y-m'),
-                        'suffix' => $suffix,
-                        'receipts_table' => self::getReceiptsTableName($date),
-                        'receipt_items_table' => self::getReceiptItemsTableName($date),
-                    ];
                     return $receipt;
                 }
             } catch (\Exception $e) {
