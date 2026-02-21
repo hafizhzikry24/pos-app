@@ -43,7 +43,7 @@ export default function ReceiptListPage() {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-800">Receipts</h2>
+                <h2 className="text-2xl font-bold text-white">Receipts</h2>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">

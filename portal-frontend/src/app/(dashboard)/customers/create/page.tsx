@@ -90,7 +90,7 @@ export default function CreateCustomerPage() {
                     <UserPlus className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-gray-900">Create Customer</h1>
+                    <h1 className="text-2xl font-bold tracking-tight text-white">Create Customer</h1>
                     <p className="text-sm text-gray-500 mt-1">Add a new customer to your database.</p>
                 </div>
             </div>

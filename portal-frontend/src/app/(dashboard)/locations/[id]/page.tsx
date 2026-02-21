@@ -124,7 +124,7 @@ export default function EditLocationPage({ params }: { params: Promise<{ id: str
                     <MapPin className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-gray-900">Edit Location</h1>
+                    <h1 className="text-2xl font-bold tracking-tight text-white">Edit Location</h1>
                     <p className="text-sm text-gray-500 mt-1">Update location details and address.</p>
                 </div>
             </div>
