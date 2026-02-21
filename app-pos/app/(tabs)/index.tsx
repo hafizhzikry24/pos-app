@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, ScrollView } from 'react-native';
 import { View, Text } from 'react-native'; // Standard RN components
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Item, itemService } from '@/services/itemService';
 import { customerService, Customer } from '@/services/customerService';
+import { DisplayService } from '@/services/displayService';
 import { useAuth } from '@/context/AuthContext';
 import Numpad from '@/components/Numpad';
 import Toast from '@/components/Toast';
@@ -18,7 +19,17 @@ export default function PosScreen() {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'error' as 'error' | 'success' });
   const { token } = useAuth();
-  
+  const params = useLocalSearchParams();
+
+  useEffect(() => {
+    if (params.refresh) {
+      setCart([]);
+      setScannedMember(null);
+      setMemberPhone('');
+      fetchItems();
+    }
+  }, [params.refresh]);
+
   // Member scanning states
   const [memberPhone, setMemberPhone] = useState('');
   const [scannedMember, setScannedMember] = useState<Customer | null>(null);
@@ -27,8 +38,20 @@ export default function PosScreen() {
   useEffect(() => {
     if (token) {
       fetchItems();
+      initializeSecondaryDisplay();
     }
   }, [token]);
+
+  const initializeSecondaryDisplay = async () => {
+    try {
+      const hasMultiple = await DisplayService.hasMultipleDisplays();
+      if (hasMultiple) {
+        await DisplayService.showOnSecondaryDisplay();
+      }
+    } catch (error) {
+      console.log('Secondary display not available:', error);
+    }
+  };
 
   const fetchItems = async () => {
     setLoading(true);
@@ -49,7 +72,7 @@ export default function PosScreen() {
     if (searchQuery.trim() === '') {
       setFilteredItems(items);
     } else {
-      const filtered = items.filter(item => 
+      const filtered = items.filter(item =>
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.sku_code.toLowerCase().includes(searchQuery.toLowerCase())
       );
@@ -57,30 +80,49 @@ export default function PosScreen() {
     }
   }, [searchQuery, items]);
 
-  const addToCart = (item: Item) => {
+  const addToCart = async (item: Item) => {
     setCart(prev => {
       const existing = prev.find(i => i.item.id === item.id);
-      if (existing) {
-        return prev.map(i => i.item.id === item.id ? { ...i, quantity: i.quantity + 1 } : i);
-      }
-      return [...prev, { item, quantity: 1 }];
+      const newCart = existing 
+        ? prev.map(i => i.item.id === item.id ? { ...i, quantity: i.quantity + 1 } : i)
+        : [...prev, { item, quantity: 1 }];
+      
+      // Update secondary display
+      updateSecondaryDisplay(newCart);
+      return newCart;
     });
   };
 
-  const removeFromCart = (itemId: number) => {
-    setCart(prev => prev.filter(i => i.item.id !== itemId));
+  const removeFromCart = async (itemId: number) => {
+    setCart(prev => {
+      const newCart = prev.filter(i => i.item.id !== itemId);
+      // Update secondary display
+      updateSecondaryDisplay(newCart);
+      return newCart;
+    });
   };
 
-  const updateQuantity = (itemId: number, delta: number) => {
+  const updateQuantity = async (itemId: number, delta: number) => {
     setCart(prev => {
-      return prev.map(i => {
+      const newCart = prev.map(i => {
         if (i.item.id === itemId) {
           const newQty = i.quantity + delta;
           return newQty > 0 ? { ...i, quantity: newQty } : i;
         }
         return i;
       });
+      // Update secondary display
+      updateSecondaryDisplay(newCart);
+      return newCart;
     });
+  };
+
+  const updateSecondaryDisplay = async (cartData: { item: Item; quantity: number }[]) => {
+    try {
+      await DisplayService.updateCart(cartData);
+    } catch (error) {
+      console.log('Failed to update secondary display:', error);
+    }
   };
 
   const handleSkuSubmit = () => {
@@ -115,7 +157,7 @@ export default function PosScreen() {
   const handlePay = () => {
     const total = calculateTotal();
     if (total === 0) return;
-    
+
     // Pass cart and member info to payment modal
     const params: any = { total };
     if (scannedMember) {
@@ -123,7 +165,7 @@ export default function PosScreen() {
       params.memberPhone = scannedMember.phone_number;
     }
     params.cartData = JSON.stringify(cart);
-    
+
     router.push({ pathname: "/modal", params });
   };
 
@@ -235,8 +277,8 @@ export default function PosScreen() {
                 style={styles.memberPhoneInput}
                 keyboardType="phone-pad"
               />
-              <TouchableOpacity 
-                style={[styles.scanButton, memberLoading && styles.scanButtonDisabled]} 
+              <TouchableOpacity
+                style={[styles.scanButton, memberLoading && styles.scanButtonDisabled]}
                 onPress={handleMemberScan}
                 disabled={memberLoading}
               >

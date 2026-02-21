@@ -3,9 +3,10 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
+use App\Http\Responses\MessageResponse;
 use App\Services\ReceiptService;
-use Illuminate\Http\Request;
 use Exception;
+use Illuminate\Http\JsonResponse;
 
 class ReceiptController extends Controller
 {
@@ -18,58 +19,45 @@ class ReceiptController extends Controller
 
     /**
      * Display a listing of receipts.
+     * @return JsonResponse
      */
-    public function index()
+    public function index(): JsonResponse
     {
         try {
             $receipts = $this->service->getAllReceipts();
-            return response()->json([
-                'success' => true,
-                'data' => $receipts
-            ]);
+            return MessageResponse::success($receipts, 'Receipts retrieved successfully');
         } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
-            ], 500);
+            return MessageResponse::serverError($e->getMessage());
         }
     }
 
     /**
      * Display the specified receipt.
+     * @param int|string $id
+     * @return JsonResponse
      */
-    public function show($id)
+    public function show($id): JsonResponse
     {
         try {
             $receipt = $this->service->getReceiptById($id);
-            return response()->json([
-                'success' => true,
-                'data' => $receipt
-            ]);
+            return MessageResponse::success($receipt, 'Receipt retrieved successfully');
         } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Receipt not found'
-            ], 404);
+            return MessageResponse::error('Receipt not found', 404);
         }
     }
 
     /**
      * Remove the specified receipt from storage.
+     * @param int|string $id
+     * @return JsonResponse
      */
-    public function destroy($id)
+    public function destroy($id): JsonResponse
     {
         try {
             $this->service->deleteReceipt($id);
-            return response()->json([
-                'success' => true,
-                'message' => 'Receipt deleted successfully'
-            ]);
+            return MessageResponse::success(null, 'Receipt deleted successfully');
         } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
-            ], 500);
+            return MessageResponse::serverError($e->getMessage());
         }
     }
 }

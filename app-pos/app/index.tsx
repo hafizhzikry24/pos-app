@@ -5,9 +5,11 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Item, itemService } from '@/services/itemService';
 import { customerService, Customer } from '@/services/customerService';
+import { DisplayService } from '@/services/displayService';
 import { useAuth } from '@/context/AuthContext';
 import Numpad from '@/components/Numpad';
 import Toast from '@/components/Toast';
+import MemberNumpadModal from '@/components/MemberNumpadModal';
 import { useRouter } from 'expo-router';
 
 export default function PosScreen() {
@@ -20,17 +22,32 @@ export default function PosScreen() {
   const [toast, setToast] = useState({ visible: false, message: '', type: 'error' as 'error' | 'success' });
   const { token, logout } = useAuth();
   const router = useRouter();
-  
+
   // Member scanning states
   const [memberPhone, setMemberPhone] = useState('');
   const [scannedMember, setScannedMember] = useState<Customer | null>(null);
   const [memberLoading, setMemberLoading] = useState(false);
+  const [isMemberModalVisible, setIsMemberModalVisible] = useState(false);
 
   useEffect(() => {
+    // Initialize secondary display on app startup (no login required)
+    initializeSecondaryDisplay();
+    
     if (token) {
       fetchItems();
     }
   }, [token]);
+
+  const initializeSecondaryDisplay = async () => {
+    try {
+      const hasMultiple = await DisplayService.hasMultipleDisplays();
+      if (hasMultiple) {
+        await DisplayService.showOnSecondaryDisplay();
+      }
+    } catch (error) {
+      console.log('Secondary display not available:', error);
+    }
+  };
 
   const fetchItems = async () => {
     setLoading(true);
@@ -51,7 +68,7 @@ export default function PosScreen() {
     if (searchQuery.trim() === '') {
       setFilteredItems(items);
     } else {
-      const filtered = items.filter(item => 
+      const filtered = items.filter(item =>
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.sku_code.toLowerCase().includes(searchQuery.toLowerCase())
       );
@@ -59,30 +76,49 @@ export default function PosScreen() {
     }
   }, [searchQuery, items]);
 
-  const addToCart = (item: Item) => {
+  const addToCart = async (item: Item) => {
     setCart(prev => {
       const existing = prev.find(i => i.item.id === item.id);
-      if (existing) {
-        return prev.map(i => i.item.id === item.id ? { ...i, quantity: i.quantity + 1 } : i);
-      }
-      return [...prev, { item, quantity: 1 }];
+      const newCart = existing 
+        ? prev.map(i => i.item.id === item.id ? { ...i, quantity: i.quantity + 1 } : i)
+        : [...prev, { item, quantity: 1 }];
+      
+      // Update secondary display
+      updateSecondaryDisplay(newCart);
+      return newCart;
     });
   };
 
-  const removeFromCart = (itemId: number) => {
-    setCart(prev => prev.filter(i => i.item.id !== itemId));
+  const removeFromCart = async (itemId: number) => {
+    setCart(prev => {
+      const newCart = prev.filter(i => i.item.id !== itemId);
+      // Update secondary display
+      updateSecondaryDisplay(newCart);
+      return newCart;
+    });
   };
 
-  const updateQuantity = (itemId: number, delta: number) => {
+  const updateQuantity = async (itemId: number, delta: number) => {
     setCart(prev => {
-      return prev.map(i => {
+      const newCart = prev.map(i => {
         if (i.item.id === itemId) {
           const newQty = i.quantity + delta;
           return newQty > 0 ? { ...i, quantity: newQty } : i;
         }
         return i;
       });
+      // Update secondary display
+      updateSecondaryDisplay(newCart);
+      return newCart;
     });
+  };
+
+  const updateSecondaryDisplay = async (cartData: { item: Item; quantity: number }[]) => {
+    try {
+      await DisplayService.updateCart(cartData);
+    } catch (error) {
+      console.log('Failed to update secondary display:', error);
+    }
   };
 
   const handleSkuSubmit = () => {
@@ -117,7 +153,7 @@ export default function PosScreen() {
   const handlePay = () => {
     const total = calculateTotal();
     if (total === 0) return;
-    
+
     // Pass cart and member info to payment modal
     const params: any = { total };
     if (scannedMember) {
@@ -125,12 +161,12 @@ export default function PosScreen() {
       params.memberPhone = scannedMember.phone_number;
     }
     params.cartData = JSON.stringify(cart);
-    
+
     router.push({ pathname: "/modal", params });
   };
 
-  const handleMemberScan = async () => {
-    if (!memberPhone.trim()) {
+  const handleMemberScan = async (phone: string) => {
+    if (!phone.trim()) {
       setToast({
         visible: true,
         message: 'Please enter a phone number',
@@ -141,7 +177,7 @@ export default function PosScreen() {
 
     setMemberLoading(true);
     try {
-      const customer = await customerService.searchByPhone(memberPhone.trim());
+      const customer = await customerService.searchByPhone(phone.trim());
       if (customer) {
         setScannedMember(customer);
         setToast({
@@ -149,8 +185,9 @@ export default function PosScreen() {
           message: `Member found: ${customer.name}`,
           type: 'success'
         });
+        setIsMemberModalVisible(false);
+        setMemberPhone('');
       } else {
-        setScannedMember(null);
         setToast({
           visible: true,
           message: 'Member not found',
@@ -158,7 +195,6 @@ export default function PosScreen() {
         });
       }
     } catch (error) {
-      setScannedMember(null);
       setToast({
         visible: true,
         message: 'Failed to search member',
@@ -203,6 +239,12 @@ export default function PosScreen() {
         type={toast.type}
         onHide={() => setToast(prev => ({ ...prev, visible: false }))}
       />
+      <MemberNumpadModal
+        visible={isMemberModalVisible}
+        onClose={() => setIsMemberModalVisible(false)}
+        onScan={handleMemberScan}
+        loading={memberLoading}
+      />
       {/* Left Side: Item Grid */}
       <View style={styles.leftPane}>
         <View style={styles.header}>
@@ -245,24 +287,13 @@ export default function PosScreen() {
               </TouchableOpacity>
             </View>
           ) : (
-            <View style={styles.memberScanContainer}>
-              <TextInput
-                value={memberPhone}
-                onChangeText={setMemberPhone}
-                placeholder="Enter phone number"
-                style={styles.memberPhoneInput}
-                keyboardType="phone-pad"
-              />
-              <TouchableOpacity 
-                style={[styles.scanButton, memberLoading && styles.scanButtonDisabled]} 
-                onPress={handleMemberScan}
-                disabled={memberLoading}
-              >
-                <Text style={styles.scanButtonText}>
-                  {memberLoading ? 'Scanning...' : 'Scan'}
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={styles.addMemberButton}
+              onPress={() => setIsMemberModalVisible(true)}
+            >
+              <Ionicons name="person-add-outline" size={20} color="#2563eb" />
+              <Text style={styles.addMemberButtonText}>Add Member</Text>
+            </TouchableOpacity>
           )}
         </View>
       </View>
@@ -586,6 +617,22 @@ const styles = StyleSheet.create({
   },
   scanButtonText: {
     color: 'white',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  addMemberButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    borderRadius: 8,
+    padding: 12,
+    gap: 8,
+  },
+  addMemberButtonText: {
+    color: '#2563eb',
     fontWeight: '600',
     fontSize: 14,
   },

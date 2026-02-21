@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Repositories\CustomerRepository;
 use App\Http\Requests\StoreCustomerRequest;
 use App\Http\Requests\UpdateCustomerRequest;
-use Illuminate\Http\Request;
+use App\Http\Responses\MessageResponse;
+use Exception;
+use Illuminate\Http\JsonResponse;
 
 class CustomerController extends Controller
 {
@@ -17,41 +19,62 @@ class CustomerController extends Controller
         $this->customerRepository = $customerRepository;
     }
 
-    public function index()
+    public function index(): JsonResponse
     {
-        return response()->json($this->customerRepository->getAll());
-    }
-
-    public function store(StoreCustomerRequest $request)
-    {
-        $customer = $this->customerRepository->create($request->validated());
-        return response()->json(['message' => 'Customer created successfully', 'customer' => $customer], 201);
-    }
-
-    public function show($id)
-    {
-        $customer = $this->customerRepository->findById($id);
-        if (!$customer) {
-            return response()->json(['message' => 'Customer not found'], 404);
+        try {
+            $customers = $this->customerRepository->getAll();
+            return MessageResponse::success($customers, 'Customers retrieved successfully');
+        } catch (Exception $e) {
+            return MessageResponse::serverError($e->getMessage());
         }
-        return response()->json($customer);
     }
 
-    public function update(UpdateCustomerRequest $request, $id)
+    public function store(StoreCustomerRequest $request): JsonResponse
     {
-        $customer = $this->customerRepository->update($id, $request->validated());
-        if (!$customer) {
-            return response()->json(['message' => 'Customer not found'], 404);
+        try {
+            $customer = $this->customerRepository->create($request->validated());
+            return MessageResponse::success($customer, 'Customer created successfully', 201);
+        } catch (Exception $e) {
+            return MessageResponse::serverError($e->getMessage());
         }
-        return response()->json(['message' => 'Customer updated successfully', 'customer' => $customer]);
     }
 
-    public function destroy($id)
+    public function show($id): JsonResponse
     {
-        $result = $this->customerRepository->delete($id);
-        if (!$result) {
-            return response()->json(['message' => 'Customer not found'], 404);
+        try {
+            $customer = $this->customerRepository->findById($id);
+            if (!$customer) {
+                return MessageResponse::error('Customer not found', 404);
+            }
+            return MessageResponse::success($customer, 'Customer retrieved successfully');
+        } catch (Exception $e) {
+            return MessageResponse::serverError($e->getMessage());
         }
-        return response()->json(['message' => 'Customer deleted successfully']);
+    }
+
+    public function update(UpdateCustomerRequest $request, $id): JsonResponse
+    {
+        try {
+            $customer = $this->customerRepository->update($id, $request->validated());
+            if (!$customer) {
+                return MessageResponse::error('Customer not found', 404);
+            }
+            return MessageResponse::success($customer, 'Customer updated successfully');
+        } catch (Exception $e) {
+            return MessageResponse::serverError($e->getMessage());
+        }
+    }
+
+    public function destroy($id): JsonResponse
+    {
+        try {
+            $result = $this->customerRepository->delete($id);
+            if (!$result) {
+                return MessageResponse::error('Customer not found', 404);
+            }
+            return MessageResponse::success(null, 'Customer deleted successfully');
+        } catch (Exception $e) {
+            return MessageResponse::serverError($e->getMessage());
+        }
     }
 }

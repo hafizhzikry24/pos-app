@@ -19,7 +19,7 @@ export default function CreateFreeItemPage() {
         eligible_items: [],
         selectable_items: [],
     });
-    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [errors, setErrors] = useState<Record<string, string[]>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -46,22 +46,22 @@ export default function CreateFreeItemPage() {
     };
 
     const validateForm = () => {
-        const newErrors: Record<string, string> = {};
+        const newErrors: Record<string, string[]> = {};
 
         if (!formData.name.trim()) {
-            newErrors.name = 'Free item name is required';
+            newErrors.name = ['Free item name is required'];
         }
 
         if (formData.required_purchase_amount <= 0) {
-            newErrors.required_purchase_amount = 'Required purchase amount must be greater than 0';
+            newErrors.required_purchase_amount = ['Required purchase amount must be greater than 0'];
         }
 
         if (formData.eligible_items && formData.eligible_items.length === 0) {
-            newErrors.eligible_items = 'At least one eligible item must be selected';
+            newErrors.eligible_items = ['At least one eligible item must be selected'];
         }
 
         if (formData.selectable_items && formData.selectable_items.length === 0) {
-            newErrors.selectable_items = 'At least one selectable item must be selected';
+            newErrors.selectable_items = ['At least one selectable item must be selected'];
         }
 
         setErrors(newErrors);
@@ -70,16 +70,23 @@ export default function CreateFreeItemPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (!validateForm()) return;
 
         setIsSubmitting(true);
+        setErrors({});
         try {
             await freeItemService.create(formData);
             router.push('/free-items');
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            setErrors({ submit: 'Failed to create free item. Please try again.' });
+            if (err.response?.status === 422 && err.response.data?.errors) {
+                setErrors(err.response.data.errors);
+            } else if (err.response?.data?.message) {
+                setErrors({ submit: [err.response.data.message] });
+            } else {
+                setErrors({ submit: ['Failed to create free item. Please try again.'] });
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -92,7 +99,9 @@ export default function CreateFreeItemPage() {
             [name]: type === 'number' ? parseFloat(value) || 0 : value
         }));
         if (errors[name]) {
-            setErrors(prev => ({ ...prev, [name]: '' }));
+            const newErrors = { ...errors };
+            delete newErrors[name];
+            setErrors(newErrors);
         }
     };
 
@@ -104,7 +113,9 @@ export default function CreateFreeItemPage() {
                 : [...(prev[type] || []), itemId]
         }));
         if (errors[type]) {
-            setErrors(prev => ({ ...prev, [type]: '' }));
+            const newErrors = { ...errors };
+            delete newErrors[type];
+            setErrors(newErrors);
         }
     };
 
@@ -139,8 +150,8 @@ export default function CreateFreeItemPage() {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {errors.submit && (
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                            <p className="text-red-600 text-sm">{errors.submit}</p>
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4 animate-in fade-in slide-in-from-top-1">
+                            <p className="text-red-600 text-sm">{errors.submit[0]}</p>
                         </div>
                     )}
 
@@ -155,13 +166,12 @@ export default function CreateFreeItemPage() {
                                 name="name"
                                 value={formData.name}
                                 onChange={handleChange}
-                                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                                    errors.name ? 'border-red-300' : 'border-gray-300'
-                                }`}
+                                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 ${errors.name ? 'border-red-300' : 'border-gray-300'
+                                    }`}
                                 placeholder="e.g., Free Coffee with Breakfast"
                             />
                             {errors.name && (
-                                <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+                                <p className="mt-1 text-sm text-red-600 animate-in fade-in slide-in-from-top-1">{errors.name[0]}</p>
                             )}
                         </div>
 
@@ -170,7 +180,7 @@ export default function CreateFreeItemPage() {
                                 Required Purchase Amount *
                             </label>
                             <div className="relative">
-
+                                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                                 <input
                                     type="number"
                                     id="required_purchase_amount"
@@ -179,14 +189,13 @@ export default function CreateFreeItemPage() {
                                     onChange={handleChange}
                                     step="0.01"
                                     min="0"
-                                    className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                                        errors.required_purchase_amount ? 'border-red-300' : 'border-gray-300'
-                                    }`}
+                                    className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 ${errors.required_purchase_amount ? 'border-red-300' : 'border-gray-300'
+                                        }`}
                                     placeholder="0.00"
                                 />
                             </div>
                             {errors.required_purchase_amount && (
-                                <p className="mt-1 text-sm text-red-600">{errors.required_purchase_amount}</p>
+                                <p className="mt-1 text-sm text-red-600 animate-in fade-in slide-in-from-top-1">{errors.required_purchase_amount[0]}</p>
                             )}
                         </div>
                     </div>
@@ -201,7 +210,7 @@ export default function CreateFreeItemPage() {
                             value={formData.description}
                             onChange={handleChange}
                             rows={3}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
                             placeholder="Describe the free item promotion..."
                         />
                     </div>
@@ -232,18 +241,16 @@ export default function CreateFreeItemPage() {
                                         <div
                                             key={item.id}
                                             onClick={() => handleCheckboxChange('eligible_items', item.id)}
-                                            className={`flex items-center justify-between p-3 rounded-lg cursor-pointer border transition-colors ${
-                                                formData.eligible_items?.includes(item.id)
-                                                    ? 'bg-blue-50 border-blue-200 text-blue-700'
-                                                    : 'bg-white border-gray-200 hover:bg-gray-50'
-                                            }`}
+                                            className={`flex items-center justify-between p-3 rounded-lg cursor-pointer border transition-colors ${formData.eligible_items?.includes(item.id)
+                                                ? 'bg-blue-50 border-blue-200 text-blue-700'
+                                                : 'bg-white border-gray-200 hover:bg-gray-50'
+                                                }`}
                                         >
                                             <div className="flex items-center gap-3">
-                                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                                                    formData.eligible_items?.includes(item.id)
-                                                        ? 'bg-blue-600 border-blue-600'
-                                                        : 'border-gray-300'
-                                                }`}>
+                                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${formData.eligible_items?.includes(item.id)
+                                                    ? 'bg-blue-600 border-blue-600'
+                                                    : 'border-gray-300'
+                                                    }`}>
                                                     {formData.eligible_items?.includes(item.id) && (
                                                         <Check className="w-3 h-3 text-white" />
                                                     )}
@@ -259,7 +266,7 @@ export default function CreateFreeItemPage() {
                                 )}
                             </div>
                             {errors.eligible_items && (
-                                <p className="mt-1 text-sm text-red-600">{errors.eligible_items}</p>
+                                <p className="mt-1 text-sm text-red-600 animate-in fade-in slide-in-from-top-1">{errors.eligible_items[0]}</p>
                             )}
                         </div>
 
@@ -274,25 +281,23 @@ export default function CreateFreeItemPage() {
                                         <div
                                             key={item.id}
                                             onClick={() => handleCheckboxChange('selectable_items', item.id)}
-                                            className={`flex items-center justify-between p-3 rounded-lg cursor-pointer border transition-colors ${
-                                                formData.selectable_items?.includes(item.id)
-                                                    ? 'bg-blue-50 border-blue-200 text-blue-700'
-                                                    : 'bg-white border-gray-200 hover:bg-gray-50'
-                                            }`}
+                                            className={`flex items-center justify-between p-3 rounded-lg cursor-pointer border transition-colors ${formData.selectable_items?.includes(item.id)
+                                                ? 'bg-blue-50 border-blue-200 text-blue-700'
+                                                : 'bg-white border-gray-200 hover:bg-gray-50'
+                                                }`}
                                         >
                                             <div className="flex items-center gap-3">
-                                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                                                    formData.selectable_items?.includes(item.id)
-                                                        ? 'bg-blue-600 border-blue-600'
-                                                        : 'border-gray-300'
-                                                }`}>
+                                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${formData.selectable_items?.includes(item.id)
+                                                    ? 'bg-blue-600 border-blue-600'
+                                                    : 'border-gray-300'
+                                                    }`}>
                                                     {formData.selectable_items?.includes(item.id) && (
                                                         <Check className="w-3 h-3 text-white" />
                                                     )}
                                                 </div>
                                                 <span className="text-sm font-medium">{item.name}</span>
                                             </div>
-                                            <span className="text-sm">RP {String(parseFloat(item.price).toFixed(2))}</span>
+                                            <span className="text-sm">RP {String(parseFloat(item.price.toString()).toFixed(2))}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -301,7 +306,7 @@ export default function CreateFreeItemPage() {
                                 )}
                             </div>
                             {errors.selectable_items && (
-                                <p className="mt-1 text-sm text-red-600">{errors.selectable_items}</p>
+                                <p className="mt-1 text-sm text-red-600 animate-in fade-in slide-in-from-top-1">{errors.selectable_items[0]}</p>
                             )}
                         </div>
                     </div>

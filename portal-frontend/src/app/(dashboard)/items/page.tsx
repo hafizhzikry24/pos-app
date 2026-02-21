@@ -93,12 +93,12 @@ export default function ItemListPage() {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-right flex justify-end gap-2">
-                                        <button
-                                            onClick={() => alert("Edit feature coming soon")}
+                                        <Link
+                                            href={`/items/${item.id}`}
                                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                         >
                                             <Edit size={18} />
-                                        </button>
+                                        </Link>
                                         <button
                                             onClick={() => handleDelete(item.id)}
                                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"

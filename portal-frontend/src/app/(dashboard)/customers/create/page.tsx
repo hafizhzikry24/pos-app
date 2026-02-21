@@ -13,7 +13,7 @@ export default function CreateCustomerPage() {
         name: '',
         phone_number: '',
     });
-    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [errors, setErrors] = useState<Record<string, string[]>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     if (loading) return <div>Loading...</div>;
@@ -23,16 +23,16 @@ export default function CreateCustomerPage() {
     }
 
     const validateForm = () => {
-        const newErrors: Record<string, string> = {};
+        const newErrors: Record<string, string[]> = {};
 
         if (!formData.name.trim()) {
-            newErrors.name = 'Customer name is required';
+            newErrors.name = ['Customer name is required'];
         }
 
         if (!formData.phone_number.trim()) {
-            newErrors.phone_number = 'Phone number is required';
+            newErrors.phone_number = ['Phone number is required'];
         } else if (!/^\+?[\d\s\-\(\)]+$/.test(formData.phone_number)) {
-            newErrors.phone_number = 'Please enter a valid phone number';
+            newErrors.phone_number = ['Please enter a valid phone number'];
         }
 
         setErrors(newErrors);
@@ -41,16 +41,23 @@ export default function CreateCustomerPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (!validateForm()) return;
 
         setIsSubmitting(true);
+        setErrors({});
         try {
             await customerService.create(formData);
             router.push('/customers');
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            setErrors({ submit: 'Failed to create customer. Please try again.' });
+            if (err.response?.status === 422 && err.response.data?.errors) {
+                setErrors(err.response.data.errors);
+            } else if (err.response?.data?.message) {
+                setErrors({ submit: [err.response.data.message] });
+            } else {
+                setErrors({ submit: ['Failed to create customer. Please try again.'] });
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -60,7 +67,9 @@ export default function CreateCustomerPage() {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
         if (errors[name]) {
-            setErrors(prev => ({ ...prev, [name]: '' }));
+            const newErrors = { ...errors };
+            delete newErrors[name];
+            setErrors(newErrors);
         }
     };
 
@@ -89,8 +98,8 @@ export default function CreateCustomerPage() {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {errors.submit && (
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                            <p className="text-red-600 text-sm">{errors.submit}</p>
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4 animate-in fade-in slide-in-from-top-1">
+                            <p className="text-red-600 text-sm">{errors.submit[0]}</p>
                         </div>
                     )}
 
@@ -105,13 +114,12 @@ export default function CreateCustomerPage() {
                                 name="name"
                                 value={formData.name}
                                 onChange={handleChange}
-                                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                                    errors.name ? 'border-red-300' : 'border-gray-300'
-                                }`}
+                                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 ${errors.name ? 'border-red-300' : 'border-gray-300'
+                                    }`}
                                 placeholder="Enter customer name"
                             />
                             {errors.name && (
-                                <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+                                <p className="mt-1 text-sm text-red-600">{errors.name[0]}</p>
                             )}
                         </div>
 
@@ -127,14 +135,13 @@ export default function CreateCustomerPage() {
                                     name="phone_number"
                                     value={formData.phone_number}
                                     onChange={handleChange}
-                                    className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                                        errors.phone_number ? 'border-red-300' : 'border-gray-300'
-                                    }`}
+                                    className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 ${errors.phone_number ? 'border-red-300' : 'border-gray-300'
+                                        }`}
                                     placeholder="+1 (555) 123-4567"
                                 />
                             </div>
                             {errors.phone_number && (
-                                <p className="mt-1 text-sm text-red-600">{errors.phone_number}</p>
+                                <p className="mt-1 text-sm text-red-600">{errors.phone_number[0]}</p>
                             )}
                         </div>
                     </div>

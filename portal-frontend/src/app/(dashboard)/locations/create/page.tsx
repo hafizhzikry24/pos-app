@@ -13,18 +13,37 @@ export default function CreateLocationPage() {
         name: "",
         address: "",
     });
+    const [errors, setErrors] = useState<Record<string, string[]>>({});
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setErrors({});
         try {
             await locationService.create(formData);
             router.push("/locations");
-        } catch (error) {
-            console.error("Failed to create location", error);
+        } catch (err: any) {
+            console.error("Failed to create location", err);
+            if (err.response?.status === 422 && err.response.data?.errors) {
+                setErrors(err.response.data.errors);
+            } else if (err.response?.data?.message) {
+                setErrors({ submit: [err.response.data.message] });
+            } else {
+                setErrors({ submit: ['Failed to create location. Please try again.'] });
+            }
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+        if (errors[name]) {
+            const newErrors = { ...errors };
+            delete newErrors[name];
+            setErrors(newErrors);
         }
     };
 
@@ -41,18 +60,27 @@ export default function CreateLocationPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
+                {errors.submit && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 animate-in fade-in slide-in-from-top-1">
+                        <p className="text-red-600 text-sm">{errors.submit[0]}</p>
+                    </div>
+                )}
+
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                         Location Code
                     </label>
                     <input
                         type="text"
-                        required
+                        name="code"
                         value={formData.code}
-                        onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                        onChange={handleChange}
+                        className={`w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-gray-900 ${errors.code ? 'border-red-300' : 'border-gray-300'}`}
                         placeholder="e.g. WH-01"
                     />
+                    {errors.code && (
+                        <p className="mt-1 text-sm text-red-600 animate-in fade-in slide-in-from-top-1">{errors.code[0]}</p>
+                    )}
                 </div>
 
                 <div>
@@ -61,12 +89,15 @@ export default function CreateLocationPage() {
                     </label>
                     <input
                         type="text"
-                        required
+                        name="name"
                         value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                        onChange={handleChange}
+                        className={`w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-gray-900 ${errors.name ? 'border-red-300' : 'border-gray-300'}`}
                         placeholder="e.g. Main Warehouse"
                     />
+                    {errors.name && (
+                        <p className="mt-1 text-sm text-red-600 animate-in fade-in slide-in-from-top-1">{errors.name[0]}</p>
+                    )}
                 </div>
 
                 <div>
@@ -74,13 +105,16 @@ export default function CreateLocationPage() {
                         Address
                     </label>
                     <textarea
-                        required
+                        name="address"
                         rows={3}
                         value={formData.address}
-                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                        onChange={handleChange}
+                        className={`w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-gray-900 ${errors.address ? 'border-red-300' : 'border-gray-300'}`}
                         placeholder="Complete address..."
                     />
+                    {errors.address && (
+                        <p className="mt-1 text-sm text-red-600 animate-in fade-in slide-in-from-top-1">{errors.address[0]}</p>
+                    )}
                 </div>
 
                 <div className="pt-4 flex justify-end gap-3">
