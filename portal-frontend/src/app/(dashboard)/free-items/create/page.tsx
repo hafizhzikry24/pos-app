@@ -142,7 +142,7 @@ export default function CreateFreeItemPage() {
                     <Gift className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-white">Create Free Item</h1>
+                    <h1 className="text-2xl font-bold tracking-tight text-gray-900">Create Free Item</h1>
                     <p className="text-sm text-gray-500 mt-1">Set up a promotional free item offer.</p>
                 </div>
             </div>

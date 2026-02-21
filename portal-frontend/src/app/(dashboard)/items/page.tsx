@@ -60,7 +60,7 @@ export default function ItemListPage() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h2 className="text-2xl font-bold text-white">Items</h2>
+                    <h2 className="text-2xl font-bold text-gray-900">Items</h2>
                     <p className="text-sm text-gray-500 mt-1">Manage your product inventory and pricing.</p>
                 </div>
                 <Link

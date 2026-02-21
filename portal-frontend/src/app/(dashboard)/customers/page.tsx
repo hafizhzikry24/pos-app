@@ -62,7 +62,7 @@ export default function CustomersPage() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-white">Customers</h1>
+                    <h1 className="text-2xl font-bold tracking-tight text-gray-900">Customers</h1>
                     <p className="text-sm text-gray-500 mt-1">Manage your customer database and contact information.</p>
                 </div>
                 <Link

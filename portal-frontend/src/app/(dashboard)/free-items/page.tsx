@@ -63,7 +63,7 @@ export default function FreeItemsPage() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-white">Free Items</h1>
+                    <h1 className="text-2xl font-bold tracking-tight text-gray-900">Free Items</h1>
                     <p className="text-sm text-gray-500 mt-1">Manage promotional free items and purchase requirements.</p>
                 </div>
                 <Link

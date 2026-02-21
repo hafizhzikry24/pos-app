@@ -51,7 +51,7 @@ export default function CreateItemPage() {
                 >
                     <ArrowLeft size={20} className="text-gray-600" />
                 </Link>
-                <h2 className="text-2xl font-bold text-white">Add New Item</h2>
+                <h2 className="text-2xl font-bold text-gray-900">Add New Item</h2>
             </div>
 
             {errors.general && (

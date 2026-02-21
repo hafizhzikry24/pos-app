@@ -59,7 +59,7 @@ export default function LocationListPage() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h2 className="text-2xl font-bold text-white">Locations</h2>
+                    <h2 className="text-2xl font-bold text-gray-900">Locations</h2>
                     <p className="text-sm text-gray-500 mt-1">Manage your store locations and addresses.</p>
                 </div>
                 <Link

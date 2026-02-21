@@ -56,7 +56,7 @@ export default function CreateLocationPage() {
                 >
                     <ArrowLeft size={20} className="text-gray-600" />
                 </Link>
-                <h2 className="text-2xl font-bold text-white">Add New Location</h2>
+                <h2 className="text-2xl font-bold text-gray-900">Add New Location</h2>
             </div>
 
             <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
