@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Item, itemService } from '@/services/itemService';
 import { customerService, Customer } from '@/services/customerService';
+import { DisplayService } from '@/services/displayService';
 import { useAuth } from '@/context/AuthContext';
 import Numpad from '@/components/Numpad';
 import Toast from '@/components/Toast';
@@ -29,10 +30,24 @@ export default function PosScreen() {
   const [isMemberModalVisible, setIsMemberModalVisible] = useState(false);
 
   useEffect(() => {
+    // Initialize secondary display on app startup (no login required)
+    initializeSecondaryDisplay();
+    
     if (token) {
       fetchItems();
     }
   }, [token]);
+
+  const initializeSecondaryDisplay = async () => {
+    try {
+      const hasMultiple = await DisplayService.hasMultipleDisplays();
+      if (hasMultiple) {
+        await DisplayService.showOnSecondaryDisplay();
+      }
+    } catch (error) {
+      console.log('Secondary display not available:', error);
+    }
+  };
 
   const fetchItems = async () => {
     setLoading(true);
@@ -61,30 +76,49 @@ export default function PosScreen() {
     }
   }, [searchQuery, items]);
 
-  const addToCart = (item: Item) => {
+  const addToCart = async (item: Item) => {
     setCart(prev => {
       const existing = prev.find(i => i.item.id === item.id);
-      if (existing) {
-        return prev.map(i => i.item.id === item.id ? { ...i, quantity: i.quantity + 1 } : i);
-      }
-      return [...prev, { item, quantity: 1 }];
+      const newCart = existing 
+        ? prev.map(i => i.item.id === item.id ? { ...i, quantity: i.quantity + 1 } : i)
+        : [...prev, { item, quantity: 1 }];
+      
+      // Update secondary display
+      updateSecondaryDisplay(newCart);
+      return newCart;
     });
   };
 
-  const removeFromCart = (itemId: number) => {
-    setCart(prev => prev.filter(i => i.item.id !== itemId));
+  const removeFromCart = async (itemId: number) => {
+    setCart(prev => {
+      const newCart = prev.filter(i => i.item.id !== itemId);
+      // Update secondary display
+      updateSecondaryDisplay(newCart);
+      return newCart;
+    });
   };
 
-  const updateQuantity = (itemId: number, delta: number) => {
+  const updateQuantity = async (itemId: number, delta: number) => {
     setCart(prev => {
-      return prev.map(i => {
+      const newCart = prev.map(i => {
         if (i.item.id === itemId) {
           const newQty = i.quantity + delta;
           return newQty > 0 ? { ...i, quantity: newQty } : i;
         }
         return i;
       });
+      // Update secondary display
+      updateSecondaryDisplay(newCart);
+      return newCart;
     });
+  };
+
+  const updateSecondaryDisplay = async (cartData: { item: Item; quantity: number }[]) => {
+    try {
+      await DisplayService.updateCart(cartData);
+    } catch (error) {
+      console.log('Failed to update secondary display:', error);
+    }
   };
 
   const handleSkuSubmit = () => {

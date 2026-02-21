@@ -43,7 +43,7 @@ export default function DashboardPage() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-gray-900">Cashiers</h1>
+                    <h1 className="text-2xl font-bold tracking-tight text-white">Cashiers</h1>
                     <p className="text-sm text-gray-500 mt-1">Manage your store cashiers and their access.</p>
                 </div>
                 <Link

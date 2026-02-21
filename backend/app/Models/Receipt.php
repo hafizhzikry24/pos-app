@@ -26,6 +26,7 @@ class Receipt extends Model
         'discount_amount',
         'tax_amount',
         'payable_amount',
+        'change_amount',
         'payment_method',
         'status',
         'note',
@@ -41,6 +42,7 @@ class Receipt extends Model
         'discount_amount' => 'decimal:2',
         'tax_amount' => 'decimal:2',
         'payable_amount' => 'decimal:2',
+        'change_amount' => 'decimal:2',
     ];
 
     /**

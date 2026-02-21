@@ -81,7 +81,7 @@ export default function CreateCashierPage() {
                 >
                     <ArrowLeft size={20} className="text-gray-600" />
                 </Link>
-                <h2 className="text-2xl font-bold text-gray-800">Create Cashier</h2>
+                <h2 className="text-2xl font-bold text-white">Create Cashier</h2>
             </div>
 
             {errors.submit && (

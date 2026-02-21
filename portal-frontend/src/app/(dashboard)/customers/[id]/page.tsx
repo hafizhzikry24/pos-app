@@ -118,7 +118,7 @@ export default function EditCustomerPage({ params }: { params: Promise<{ id: str
                     <UserPlus className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-gray-900">Edit Customer</h1>
+                    <h1 className="text-2xl font-bold tracking-tight text-white">Edit Customer</h1>
                     <p className="text-sm text-gray-500 mt-1">Update customer information.</p>
                 </div>
             </div>

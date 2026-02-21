@@ -8,6 +8,7 @@ use App\Http\Controllers\Dashboard\LocationController;
 use App\Http\Controllers\Dashboard\ItemController;
 use App\Http\Controllers\Dashboard\CustomerController;
 use App\Http\Controllers\Dashboard\FreeItemController;
+use App\Http\Controllers\Dashboard\ReceiptController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -26,6 +27,6 @@ Route::middleware('auth:api')->group(function () {
     Route::apiResource('locations', LocationController::class);
     Route::apiResource('items', ItemController::class);
     Route::apiResource('free-items', FreeItemController::class);
-    Route::apiResource('receipts', \App\Http\Controllers\Dashboard\ReceiptController::class)->only(['index', 'show', 'destroy']);
+    Route::apiResource('receipts', ReceiptController::class)->only(['index', 'show', 'destroy']);
     Route::post('/logout', [AuthController::class, 'logout']);
 });
