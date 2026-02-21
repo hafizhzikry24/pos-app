@@ -66,7 +66,7 @@ export default function LoginScreen() {
             if (router.canGoBack()) {
                 router.dismissAll();
             }
-            router.replace('/(tabs)');
+            router.replace('/');
         } catch (error: any) {
             console.error("Login component error:", error);
             Alert.alert(
