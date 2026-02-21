@@ -29,6 +29,18 @@ class ReceiptService
     }
 
     /**
+     * Get paginated receipts with search functionality
+     * 
+     * @param string|null $search
+     * @param int $perPage
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     */
+    public function getPaginatedWithSearch(?string $search = null, int $perPage = 10)
+    {
+        return $this->repository->getPaginatedWithSearch($search, $perPage);
+    }
+
+    /**
      * @param int $id
      * @return \App\Models\Receipt
      */

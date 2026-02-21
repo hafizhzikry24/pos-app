@@ -268,6 +268,112 @@ class ReceiptShardingService
     }
 
     /**
+     * Get paginated receipts with search functionality from all tables.
+     *
+     * @param string|null $search
+     * @param int $perPage
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     */
+    public static function getPaginatedReceiptsWithSearch(?string $search = null, int $perPage = 10)
+    {
+        $allReceipts = collect();
+        
+        // First, get receipts from the original table
+        try {
+            $query = \App\Models\Receipt::with(['receiptItems', 'location', 'cashier', 'customer']);
+            
+            if ($search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('number', 'LIKE', "%{$search}%")
+                      ->orWhereHas('cashier', function($subQ) use ($search) {
+                          $subQ->where('name', 'LIKE', "%{$search}%");
+                      })
+                      ->orWhereHas('customer', function($subQ) use ($search) {
+                          $subQ->where('name', 'LIKE', "%{$search}%");
+                      });
+                });
+            }
+            
+            $originalReceipts = $query->get();
+            
+            // Add table info to each receipt from original table
+            $originalReceipts->each(function ($receipt) {
+                $receipt->table_info = [
+                    'date' => 'original',
+                    'suffix' => 'original',
+                    'receipts_table' => 'receipts',
+                    'receipt_items_table' => 'receipt_items',
+                ];
+            });
+            
+            $allReceipts = $allReceipts->concat($originalReceipts);
+        } catch (\Exception $e) {
+            // Skip if original table has issues
+        }
+        
+        // Then, get receipts from sharded tables
+        $suffixes = self::getAvailableTableSuffixes(24); // Last 24 months
+        
+        foreach ($suffixes as $suffix) {
+            try {
+                $date = Carbon::createFromFormat('Ym', $suffix);
+                $query = self::getReceiptsQuery($date)
+                    ->with(['receiptItems', 'location', 'cashier', 'customer']);
+                
+                if ($search) {
+                    $query->where(function($q) use ($search) {
+                        $q->where('number', 'LIKE', "%{$search}%")
+                          ->orWhereHas('cashier', function($subQ) use ($search) {
+                              $subQ->where('name', 'LIKE', "%{$search}%");
+                          })
+                          ->orWhereHas('customer', function($subQ) use ($search) {
+                              $subQ->where('name', 'LIKE', "%{$search}%");
+                          });
+                    });
+                }
+                
+                $receipts = $query->get();
+                
+                // Add table info to each receipt from sharded table
+                $receipts->each(function ($receipt) use ($date, $suffix) {
+                    $receipt->table_info = [
+                        'date' => $date->format('Y-m'),
+                        'suffix' => $suffix,
+                        'receipts_table' => self::getReceiptsTableName($date),
+                        'receipt_items_table' => self::getReceiptItemsTableName($date),
+                    ];
+                });
+                
+                $allReceipts = $allReceipts->concat($receipts);
+            } catch (\Exception $e) {
+                // Skip tables that might have issues
+                continue;
+            }
+        }
+        
+        // Sort by created_at descending and paginate
+        $sortedReceipts = $allReceipts->sortByDesc('created_at')->values();
+        
+        // Manual pagination since we're dealing with a collection
+        $currentPage = request()->get('page', 1);
+        $offset = ($currentPage - 1) * $perPage;
+        $itemsForCurrentPage = $sortedReceipts->slice($offset, $perPage)->values();
+        $total = $sortedReceipts->count();
+        $lastPage = ceil($total / $perPage);
+        
+        return new \Illuminate\Pagination\LengthAwarePaginator(
+            $itemsForCurrentPage,
+            $total,
+            $perPage,
+            $currentPage,
+            [
+                'path' => request()->url(),
+                'pageName' => 'page',
+            ]
+        );
+    }
+
+    /**
      * Find receipt by ID in both original table and all available sharded tables.
      *
      * @param int $id

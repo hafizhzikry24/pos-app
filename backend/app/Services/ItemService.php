@@ -18,6 +18,18 @@ class ItemService
         return $this->repository->getAll();
     }
 
+    /**
+     * Get paginated items with search functionality
+     * 
+     * @param string|null $search
+     * @param int $perPage
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     */
+    public function getPaginatedWithSearch(?string $search = null, int $perPage = 10)
+    {
+        return $this->repository->getPaginatedWithSearch($search, $perPage);
+    }
+
     public function getItemById($id)
     {
         return $this->repository->getById($id);

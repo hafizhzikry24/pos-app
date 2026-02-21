@@ -34,6 +34,27 @@ class FreeItemRepository implements FreeItemRepositoryInterface
     }
 
     /**
+     * Get paginated free items with search functionality
+     * 
+     * @param string|null $search
+     * @param int $perPage
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     */
+    public function getPaginatedWithSearch(?string $search = null, int $perPage = 10)
+    {
+        $query = FreeItem::with(['eligibleItems', 'selectableItems']);
+        
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'LIKE', "%{$search}%")
+                  ->orWhere('description', 'LIKE', "%{$search}%");
+            });
+        }
+        
+        return $query->orderBy('name')->paginate($perPage);
+    }
+
+    /**
      * @param int $id
      * @return bool
      */

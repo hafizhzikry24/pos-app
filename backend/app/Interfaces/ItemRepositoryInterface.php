@@ -5,6 +5,15 @@ namespace App\Interfaces;
 interface ItemRepositoryInterface
 {
     public function getAll();
+    
+    /**
+     * Get paginated items with search functionality
+     * 
+     * @param string|null $search
+     * @param int $perPage
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     */
+    public function getPaginatedWithSearch(?string $search = null, int $perPage = 10);
     public function getById($id);
     public function create(array $data);
     public function update($id, array $data);

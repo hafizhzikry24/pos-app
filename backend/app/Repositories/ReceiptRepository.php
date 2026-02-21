@@ -16,6 +16,18 @@ class ReceiptRepository implements ReceiptRepositoryInterface
     }
 
     /**
+     * Get paginated receipts with search functionality
+     * 
+     * @param string|null $search
+     * @param int $perPage
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     */
+    public function getPaginatedWithSearch(?string $search = null, int $perPage = 10)
+    {
+        return ReceiptShardingService::getPaginatedReceiptsWithSearch($search, $perPage);
+    }
+
+    /**
      * @param int $id
      * @return \App\Models\Receipt
      */

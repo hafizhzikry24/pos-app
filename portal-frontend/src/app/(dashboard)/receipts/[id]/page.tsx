@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Receipt, receiptService } from "@/services/receipt";
+import { Receipt, receiptService } from "@/services/receiptService";
 import { ArrowLeft, Printer, Trash2, Calendar, User, CreditCard, Tag, FileText } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
