@@ -10,6 +10,7 @@ import { useAuth } from '@/context/AuthContext';
 import Numpad from '@/components/Numpad';
 import Toast from '@/components/Toast';
 import MemberNumpadModal from '@/components/MemberNumpadModal';
+import CreateMemberModal from '@/components/CreateMemberModal';
 import { useRouter } from 'expo-router';
 
 export default function PosScreen() {
@@ -28,6 +29,7 @@ export default function PosScreen() {
   const [scannedMember, setScannedMember] = useState<Customer | null>(null);
   const [memberLoading, setMemberLoading] = useState(false);
   const [isMemberModalVisible, setIsMemberModalVisible] = useState(false);
+  const [isCreateMemberModalVisible, setIsCreateMemberModalVisible] = useState(false);
 
   useEffect(() => {
     // Initialize secondary display on app startup (no login required)
@@ -210,6 +212,15 @@ export default function PosScreen() {
     setMemberPhone('');
   };
 
+  const handleCreateMemberSuccess = (customer: Customer) => {
+    setScannedMember(customer);
+    setToast({
+      visible: true,
+      message: `New member "${customer.name}" added successfully!`,
+      type: 'success'
+    });
+  };
+
   const handleLogout = async () => {
     try {
       await logout();
@@ -244,6 +255,11 @@ export default function PosScreen() {
         onClose={() => setIsMemberModalVisible(false)}
         onScan={handleMemberScan}
         loading={memberLoading}
+      />
+      <CreateMemberModal
+        visible={isCreateMemberModalVisible}
+        onClose={() => setIsCreateMemberModalVisible(false)}
+        onSuccess={handleCreateMemberSuccess}
       />
       {/* Left Side: Item Grid */}
       <View style={styles.leftPane}>
@@ -287,13 +303,23 @@ export default function PosScreen() {
               </TouchableOpacity>
             </View>
           ) : (
-            <TouchableOpacity
-              style={styles.addMemberButton}
-              onPress={() => setIsMemberModalVisible(true)}
-            >
-              <Ionicons name="person-add-outline" size={20} color="#2563eb" />
-              <Text style={styles.addMemberButtonText}>Add Member</Text>
-            </TouchableOpacity>
+            <View style={styles.memberActions}>
+              <TouchableOpacity
+                style={styles.addMemberButton}
+                onPress={() => setIsMemberModalVisible(true)}
+              >
+                <Ionicons name="search" size={20} color="#2563eb" />
+                <Text style={styles.addMemberButtonText}>Search Member</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.createMemberButton}
+                onPress={() => setIsCreateMemberModalVisible(true)}
+              >
+                <Ionicons name="person-add-outline" size={20} color="#059669" />
+                <Text style={styles.createMemberButtonText}>New Member</Text>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
       </View>
@@ -630,9 +656,31 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     gap: 8,
+    flex: 1,
   },
   addMemberButtonText: {
     color: '#2563eb',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  memberActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  createMemberButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ecfdf5',
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+    borderRadius: 8,
+    padding: 12,
+    gap: 8,
+    flex: 1,
+  },
+  createMemberButtonText: {
+    color: '#059669',
     fontWeight: '600',
     fontSize: 14,
   },
