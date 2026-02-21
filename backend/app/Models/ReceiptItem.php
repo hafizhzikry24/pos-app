@@ -4,12 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 
 class ReceiptItem extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasFactory, SoftDeletes, LogsActivity;
 
     /**
      * The attributes that are mass assignable.
@@ -24,6 +25,7 @@ class ReceiptItem extends Model
         'price',
         'discount',
         'total',
+        'is_free_item',
     ];
 
     /**
@@ -35,6 +37,7 @@ class ReceiptItem extends Model
         'price' => 'decimal:2',
         'discount' => 'decimal:2',
         'total' => 'decimal:2',
+        'is_free_item' => 'boolean',
     ];
 
     /**

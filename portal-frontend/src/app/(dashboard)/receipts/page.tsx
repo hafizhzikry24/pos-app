@@ -14,6 +14,19 @@ export default function ReceiptListPage() {
         fetchReceipts();
     }, []);
 
+    const handleViewReceipt = (receipt: Receipt) => {
+        // Store table info in localStorage for the detail page
+        if (receipt.table_info?.suffix && receipt.table_info.suffix !== 'original') {
+            localStorage.setItem(`receiptTable_${receipt.id}`, receipt.table_info.suffix);
+            // Navigate with table parameter
+            window.location.href = `/receipts/${receipt.id}?table=${receipt.table_info.suffix}`;
+        } else {
+            // Remove any existing table info for original table receipts
+            localStorage.removeItem(`receiptTable_${receipt.id}`);
+            window.location.href = `/receipts/${receipt.id}`;
+        }
+    };
+
     const fetchReceipts = async () => {
         try {
             const data = await receiptService.getAll();
@@ -58,7 +71,7 @@ export default function ReceiptListPage() {
                             </tr>
                         ) : (
                             receipts.map((receipt) => (
-                                <tr key={receipt.id} className="hover:bg-gray-50 transition-colors">
+                                <tr key={`${receipt.id}-${receipt.table_info?.suffix || 'original'}`} className="hover:bg-gray-50 transition-colors">
                                     <td className="px-6 py-4 font-mono text-xs">{receipt.number}</td>
                                     <td className="px-6 py-4">
                                         {new Date(receipt.created_at).toLocaleDateString("id-ID", {
@@ -90,13 +103,13 @@ export default function ReceiptListPage() {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-right">
-                                        <Link
-                                            href={`/receipts/${receipt.id}`}
+                                        <button
+                                            onClick={() => handleViewReceipt(receipt)}
                                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-flex items-center gap-1"
                                         >
                                             <Eye size={18} />
                                             View
-                                        </Link>
+                                        </button>
                                     </td>
                                 </tr>
                             ))

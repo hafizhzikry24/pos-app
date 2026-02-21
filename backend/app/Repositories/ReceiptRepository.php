@@ -3,7 +3,7 @@
 namespace App\Repositories;
 
 use App\Interfaces\ReceiptRepositoryInterface;
-use App\Models\Receipt;
+use App\Services\ReceiptShardingService;
 
 class ReceiptRepository implements ReceiptRepositoryInterface
 {
@@ -12,7 +12,7 @@ class ReceiptRepository implements ReceiptRepositoryInterface
      */
     public function getAll()
     {
-        return Receipt::with(['receiptItems', 'location', 'cashier', 'customer'])->get();
+        return ReceiptShardingService::getAllReceiptsFromAllTables();
     }
 
     /**
@@ -21,7 +21,13 @@ class ReceiptRepository implements ReceiptRepositoryInterface
      */
     public function getById($id)
     {
-        return Receipt::with(['receiptItems', 'location', 'cashier', 'customer'])->findOrFail($id);
+        $receipt = ReceiptShardingService::findReceiptInAllTables($id);
+        
+        if (!$receipt) {
+            throw new \Exception("Receipt not found");
+        }
+        
+        return $receipt;
     }
 
     /**
@@ -30,7 +36,7 @@ class ReceiptRepository implements ReceiptRepositoryInterface
      */
     public function create(array $data)
     {
-        return Receipt::create($data);
+        return ReceiptShardingService::createReceipt($data);
     }
 
     /**
@@ -40,7 +46,12 @@ class ReceiptRepository implements ReceiptRepositoryInterface
      */
     public function update($id, array $data)
     {
-        $receipt = Receipt::findOrFail($id);
+        $receipt = ReceiptShardingService::findReceiptInAllTables($id);
+        
+        if (!$receipt) {
+            throw new \Exception("Receipt not found");
+        }
+        
         $receipt->update($data);
         return $receipt;
     }
@@ -51,8 +62,7 @@ class ReceiptRepository implements ReceiptRepositoryInterface
      */
     public function delete($id)
     {
-        $receipt = Receipt::findOrFail($id);
-        return $receipt->delete();
+        return ReceiptShardingService::deleteReceiptInAllTables($id);
     }
 
     /**
@@ -61,8 +71,12 @@ class ReceiptRepository implements ReceiptRepositoryInterface
      */
     public function getByNumber($number)
     {
-        return Receipt::with(['receiptItems', 'location', 'cashier', 'customer'])
-            ->where('number', $number)
-            ->firstOrFail();
+        $receipt = ReceiptShardingService::findReceiptByNumberInAllTables($number);
+        
+        if (!$receipt) {
+            throw new \Exception("Receipt with number '{$number}' not found");
+        }
+        
+        return $receipt;
     }
 }
