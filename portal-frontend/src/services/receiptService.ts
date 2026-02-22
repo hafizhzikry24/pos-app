@@ -56,9 +56,10 @@ export const receiptService = {
         return response.data;
     },
 
-    getPaginated: async (search?: string, page: number = 1, perPage: number = 10): Promise<PaginatedResponse<Receipt>> => {
+    getPaginated: async (search?: string, date?: string, page: number = 1, perPage: number = 10): Promise<PaginatedResponse<Receipt>> => {
         const params = new URLSearchParams();
         if (search) params.append('search', search);
+        if (date) params.append('date', date);
         params.append('page', page.toString());
         params.append('per_page', perPage.toString());
         

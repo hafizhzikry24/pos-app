@@ -26,9 +26,10 @@ class ReceiptController extends Controller
     {
         try {
             $search = $request->get('search');
+            $date = $request->get('date');
             $perPage = $request->get('per_page', 10);
             
-            $receipts = $this->service->getPaginatedWithSearch($search, $perPage);
+            $receipts = $this->service->getPaginatedWithSearch($search, $date, $perPage);
             return MessageResponse::success($receipts, 'Receipts retrieved successfully');
         } catch (Exception $e) {
             return MessageResponse::serverError($e->getMessage());
