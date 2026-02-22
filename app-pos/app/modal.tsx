@@ -54,6 +54,43 @@ export default function ModalScreen() {
 
   const change = cashReceived - totalAmount;
 
+  // Update dual display with cart and free items
+  const updateDualDisplay = async () => {
+    if (!process.env.EXPO_PUBLIC_DUAL_SCREEN) return;
+    
+    try {
+      // Combine cart items with selected free items
+      const displayItems = [
+        ...cart.map((item: any) => ({
+          item: item.item,
+          quantity: item.quantity
+        })),
+        ...selectedSelectableItems.map((selection: {freeItemId: number, itemId: number}) => {
+          const freeItem = eligibleFreeItems.find(item => item.id === selection.freeItemId);
+          const selectableItem = freeItem?.selectable_items?.find(item => item.id === selection.itemId);
+          
+          return {
+            item: {
+              ...selectableItem,
+              price: 0, // Free items have 0 price
+              is_free_item: true
+            },
+            quantity: 1
+          };
+        })
+      ];
+      
+      await DisplayService.updateCart(displayItems);
+    } catch (error) {
+      console.log('Failed to update dual display:', error);
+    }
+  };
+
+  // Update dual display when free items selection changes
+  useEffect(() => {
+    updateDualDisplay();
+  }, [selectedSelectableItems, selectedFreeItems]);
+
   // Check free item eligibility when component mounts or when member/cart changes
   useEffect(() => {
     if (hasMember && cart.length > 0) {
