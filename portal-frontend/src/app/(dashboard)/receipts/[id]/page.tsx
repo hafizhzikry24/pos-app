@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Receipt, receiptService } from "@/services/receipt";
+import { Receipt, receiptService } from "@/services/receiptService";
 import { ArrowLeft, Printer, Trash2, Calendar, User, CreditCard, Tag, FileText } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -19,9 +19,58 @@ export default function ReceiptDetailPage() {
         }
     }, [id]);
 
+    useEffect(() => {
+        // Add print styles
+        const style = document.createElement('style');
+        style.textContent = `
+            @media print {
+                body * {
+                    visibility: hidden;
+                }
+
+                .print-only, .print-only * {
+                    visibility: visible;
+                }
+
+                .print-only {
+                    position: static !important;   /* jangan absolute */
+                    width: 100% !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                }
+
+                .no-print {
+                    display: none !important;
+                }
+
+                html, body {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    height: auto !important;
+                }
+
+                @page {
+                    margin: 10mm;
+                }
+            }
+            
+        `;
+        document.head.appendChild(style);
+        
+        return () => {
+            if (document.head.contains(style)) {
+                document.head.removeChild(style);
+            }
+        };
+    }, []);
+
     const fetchReceipt = async () => {
         try {
-            const data = await receiptService.getById(Number(id));
+            // Get table info from localStorage or URL params if available
+            const urlParams = new URLSearchParams(window.location.search);
+            const tableSuffix = urlParams.get('table') || localStorage.getItem('receiptTable_' + id) || undefined;
+            
+            const data = await receiptService.getById(Number(id), tableSuffix);
             setReceipt(data);
         } catch (error) {
             console.error("Failed to fetch receipt", error);
@@ -33,7 +82,11 @@ export default function ReceiptDetailPage() {
     const handleDelete = async () => {
         if (!confirm("Are you sure you want to delete this receipt?")) return;
         try {
-            await receiptService.delete(Number(id));
+            // Get table info from localStorage or URL params if available
+            const urlParams = new URLSearchParams(window.location.search);
+            const tableSuffix = urlParams.get('table') || localStorage.getItem('receiptTable_' + id) || undefined;
+            
+            await receiptService.delete(Number(id), tableSuffix);
             router.push("/receipts");
         } catch (error) {
             console.error("Failed to delete receipt", error);
@@ -44,8 +97,8 @@ export default function ReceiptDetailPage() {
     if (!receipt) return <div>Receipt not found</div>;
 
     return (
-        <div className="max-w-4xl mx-auto space-y-6 pb-20">
-            <div className="flex justify-between items-center">
+        <div className="max-w-4xl mx-auto space-y-6">
+            <div className="no-print flex justify-between items-center">
                 {/* <Link
                     href="/receipts"
                     className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
@@ -71,7 +124,7 @@ export default function ReceiptDetailPage() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="print-only grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="md:col-span-2 space-y-6">
                     {/* Receipt Header Info */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -103,21 +156,36 @@ export default function ReceiptDetailPage() {
                             <div className="space-y-4">
                                 {receipt.receipt_items?.map((item) => (
                                     <div key={item.id} className="flex justify-between items-start">
-                                        <div>
-                                            <p className="font-medium text-gray-900">{item.name}</p>
+                                        <div className="flex-1">
+                                            <p className="font-medium text-gray-900">
+                                                {item.name}
+                                                {item.is_free_item && (
+                                                    <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                                                        Free Item
+                                                    </span>
+                                                )}
+                                            </p>
                                             <p className="text-sm text-gray-500">
                                                 {item.quantity} x {new Intl.NumberFormat("id-ID", {
                                                     style: "currency",
                                                     currency: "IDR",
                                                 }).format(Number(item.price))}
+                                                {item.is_free_item && (
+                                                    <span className="ml-2 text-green-600 text-xs">(Free)</span>
+                                                )}
                                             </p>
                                         </div>
-                                        <p className="font-semibold text-gray-900 text-right">
-                                            {new Intl.NumberFormat("id-ID", {
-                                                style: "currency",
-                                                currency: "IDR",
-                                            }).format(Number(item.total))}
-                                        </p>
+                                        <div className="font-semibold text-gray-900 text-right">
+                                            <p className="font-semibold text-gray-900 text-right">
+                                                {new Intl.NumberFormat("id-ID", {
+                                                    style: "currency",
+                                                    currency: "IDR",
+                                                }).format(Number(item.total))}
+                                            </p>
+                                            {item.is_free_item && (
+                                                <div className="text-xs text-green-600 mt-1">Free</div>
+                                            )}
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -142,8 +210,18 @@ export default function ReceiptDetailPage() {
                             )}
                             <div className="flex justify-between text-xl font-bold text-gray-900 pt-3 border-t border-gray-100">
                                 <span>Total</span>
+                                <span>{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(Number(receipt.total_amount))}</span>
+                            </div>
+                            <div className="flex justify-between text-lg font-semibold text-blue-600">
+                                <span>Paid</span>
                                 <span>{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(Number(receipt.payable_amount))}</span>
                             </div>
+                            {Number(receipt.change_amount) > 0 && (
+                                <div className="flex justify-between text-lg font-semibold text-green-600">
+                                    <span>Change</span>
+                                    <span>{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(Number(receipt.change_amount))}</span>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -188,7 +266,7 @@ export default function ReceiptDetailPage() {
                     </div>
 
                     {receipt.note && (
-                        <div className="bg-amber-50 rounded-xl border border-amber-100 p-6">
+                        <div className="no-print bg-amber-50 rounded-xl border border-amber-100 p-6">
                             <h3 className="font-semibold text-amber-900 mb-2 flex items-center gap-2">
                                 <Tag size={18} className="text-amber-500" />
                                 Notes

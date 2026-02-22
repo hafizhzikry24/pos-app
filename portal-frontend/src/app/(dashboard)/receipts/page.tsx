@@ -2,26 +2,62 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Receipt, receiptService } from "@/services/receipt";
-import { FileText, Eye, Package } from "lucide-react";
+import { Receipt, receiptService, PaginatedResponse } from "@/services/receiptService";
+import { FileText, Eye, Package, Search, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { useRouter } from "next/navigation";
 
 export default function ReceiptListPage() {
     const [receipts, setReceipts] = useState<Receipt[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState('');
+    const [date, setDate] = useState('');
+    const { user, loading } = useAuth();
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pagination, setPagination] = useState({
+        current_page: 1,
+        last_page: 1,
+        per_page: 10,
+        total: 0
+    });    
+    const router = useRouter();    
 
     useEffect(() => {
-        fetchReceipts();
-    }, []);
+        if (!loading && !user) {
+            router.push('/login');
+        }
+        if (user && date) {
+            setCurrentPage(1);
+            fetchReceipts();
+        }
+    }, [search, date, currentPage, user, loading, router]);
+
+
+    const handleViewReceipt = (receipt: Receipt) => {
+        // Store table info in localStorage for the detail page
+        if (receipt.table_info?.suffix && receipt.table_info.suffix !== 'original') {
+            localStorage.setItem(`receiptTable_${receipt.id}`, receipt.table_info.suffix);
+            // Navigate with table parameter
+            window.location.href = `/receipts/${receipt.id}?table=${receipt.table_info.suffix}`;
+        } else {
+            // Remove any existing table info for original table receipts
+            localStorage.removeItem(`receiptTable_${receipt.id}`);
+            window.location.href = `/receipts/${receipt.id}`;
+        }
+    };
 
     const fetchReceipts = async () => {
         try {
-            const data = await receiptService.getAll();
-            setReceipts(data || []);
+            const data: PaginatedResponse<Receipt> = await receiptService.getPaginated(search, date, currentPage, 10);
+            setReceipts(data.data || []);
+            setPagination({
+                current_page: data.current_page,
+                last_page: data.last_page,
+                per_page: data.per_page,
+                total: data.total
+            });
         } catch (error) {
             console.error("Failed to fetch receipts", error);
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -30,7 +66,36 @@ export default function ReceiptListPage() {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-800">Receipts</h2>
+                <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Receipts</h2>
+                    <p className="text-sm text-gray-500 mt-1">View and manage all transaction receipts.</p>
+                </div>
+            </div>
+
+            {/* Search and Filter Bar */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="relative flex-1 max-w-md">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <input
+                            type="text"
+                            placeholder="Search by receipt number, cashier, or customer..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                        />
+                    </div>
+                    <div className="relative">
+                        <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <input
+                            type="date"
+                            placeholder="Filter by date"
+                            value={date}
+                            onChange={(e) => setDate(e.target.value)}
+                            className="pl-10 pr-4 py-2 border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                        />
+                    </div>
+                </div>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -53,12 +118,13 @@ export default function ReceiptListPage() {
                                     <div className="flex flex-col items-center gap-2">
                                         <FileText className="w-8 h-8 text-gray-400" />
                                         <span>No receipts found.</span>
+                                        <p className="text-sm">Try adjusting your search criteria.</p>
                                     </div>
                                 </td>
                             </tr>
                         ) : (
                             receipts.map((receipt) => (
-                                <tr key={receipt.id} className="hover:bg-gray-50 transition-colors">
+                                <tr key={`${receipt.id}-${receipt.table_info?.suffix || 'original'}`} className="hover:bg-gray-50 transition-colors">
                                     <td className="px-6 py-4 font-mono text-xs">{receipt.number}</td>
                                     <td className="px-6 py-4">
                                         {new Date(receipt.created_at).toLocaleDateString("id-ID", {
@@ -90,13 +156,13 @@ export default function ReceiptListPage() {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-right">
-                                        <Link
-                                            href={`/receipts/${receipt.id}`}
+                                        <button
+                                            onClick={() => handleViewReceipt(receipt)}
                                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-flex items-center gap-1"
                                         >
                                             <Eye size={18} />
                                             View
-                                        </Link>
+                                        </button>
                                     </td>
                                 </tr>
                             ))
@@ -104,6 +170,36 @@ export default function ReceiptListPage() {
                     </tbody>
                 </table>
             </div>
+
+            {/* Pagination */}
+            {pagination.last_page >= 1 && (
+                <div className="flex items-center justify-between bg-white px-4 py-3 border border-gray-200 rounded-lg shadow-sm">
+                    <div className="text-sm text-gray-700">
+                        Showing <span className="font-medium">{(pagination.current_page - 1) * pagination.per_page + 1}</span> to{' '}
+                        <span className="font-medium">{Math.min(pagination.current_page * pagination.per_page, pagination.total)}</span> of{' '}
+                        <span className="font-medium">{pagination.total}</span> results
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            disabled={pagination.current_page === 1}
+                            className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <ChevronLeft className="w-4 h-4 text-gray-900" />
+                        </button>
+                        <span className="text-sm text-gray-700 px-3">
+                            Page {pagination.current_page} of {pagination.last_page}
+                        </span>
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.min(pagination.last_page, prev + 1))}
+                            disabled={pagination.current_page === pagination.last_page}
+                            className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <ChevronRight className="w-4 h-4 text-gray-900" />
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -9,6 +9,7 @@ use App\Http\Responses\MessageResponse;
 use App\Services\ItemService;
 use Exception;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class ItemController extends Controller
 {
@@ -19,10 +20,13 @@ class ItemController extends Controller
         $this->service = $service;
     }
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         try {
-            $items = $this->service->getAllItems();
+            $search = $request->get('search');
+            $perPage = $request->get('per_page', 10);
+            
+            $items = $this->service->getPaginatedWithSearch($search, $perPage);
             return MessageResponse::success($items, 'Items retrieved successfully');
         } catch (Exception $e) {
             return MessageResponse::serverError($e->getMessage());

@@ -6,7 +6,8 @@ use App\Http\Controllers\Pos\AuthController;
 use App\Http\Controllers\Pos\LocationController;
 use App\Http\Controllers\Pos\ItemController;
 use App\Http\Controllers\Pos\CustomerController;
-use App\Http\Controllers\Dashboard\FreeItemController;
+use App\Http\Controllers\Pos\FreeItemController;
+use App\Http\Controllers\Pos\ReceiptController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -23,6 +24,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/customers/search/{phoneNumber}', [CustomerController::class, 'searchByPhone']);
     Route::post('/free-items/check-eligibility', [FreeItemController::class, 'checkEligibility']);
 
-    Route::post('/receipts', [\App\Http\Controllers\Pos\ReceiptController::class, 'store']);
-    Route::get('/receipts/{id}', [\App\Http\Controllers\Pos\ReceiptController::class, 'show']);
+    Route::post('/receipts', [ReceiptController::class, 'store']);
+    Route::get('/receipts/{id}', [ReceiptController::class, 'show']);
 });

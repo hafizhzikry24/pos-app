@@ -119,6 +119,14 @@ export default function ModalScreen() {
 
       const receiptNumber = `RCP-${Date.now()}`;
 
+      // Debug: Log the current state
+      console.log('=== Debug Info ===');
+      console.log('Cart:', cart);
+      console.log('Selected Free Items:', selectedFreeItems);
+      console.log('Eligible Free Items:', eligibleFreeItems);
+      console.log('Has Member:', hasMember);
+      console.log('Member ID:', memberId);
+
       const receiptData: ReceiptData = {
         number: receiptNumber,
         location_id: locationId,
@@ -127,18 +135,40 @@ export default function ModalScreen() {
         total_amount: totalAmount,
         discount_amount: 0,
         tax_amount: 0,
-        payable_amount: totalAmount,
+        payable_amount: cashReceived, // What customer actually pays
+        change_amount: change >= 0 ? change : 0, // Change to give back
         payment_method: 'cash', // Default to cash for now
         note: 'POS transaction',
-        items: cart.map((item: any) => ({
-          item_id: item.item.id,
-          name: item.item.name,
-          quantity: item.quantity,
-          price: item.item.price,
-          discount: 0,
-          total: item.item.price * item.quantity
-        }))
+        items: [
+          ...cart.map((item: any) => ({
+            item_id: item.item.id,
+            name: item.item.name,
+            quantity: item.quantity,
+            price: item.item.price,
+            discount: 0,
+            total: item.item.price * item.quantity,
+            is_free_item: false
+          })),
+          // Add selected free items
+          ...selectedFreeItems.map((freeItemId: number) => {
+            const freeItem = eligibleFreeItems.find(item => item.id === freeItemId);
+            const selectableItem = freeItem?.selectable_items?.[0]; // Get first selectable item
+            
+            return {
+              item_id: selectableItem?.id || 0, // Use the actual selectable item ID
+              name: selectableItem?.name || freeItem?.name || 'Free Item', // Use selectable item name first
+              quantity: 1,
+              price: 0,
+              discount: 0,
+              total: 0,
+              is_free_item: true
+            };
+          })
+        ]
       };
+
+      console.log('Final receipt data:', receiptData);
+      console.log('===================');
 
       await receiptService.create(receiptData);
 

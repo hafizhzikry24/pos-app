@@ -28,6 +28,15 @@ interface CustomerRepositoryInterface
     public function getAll();
     
     /**
+     * Get paginated customers with search functionality
+     * 
+     * @param string|null $search
+     * @param int $perPage
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     */
+    public function getPaginatedWithSearch(?string $search = null, int $perPage = 10);
+    
+    /**
      * @param int $id
      * @return bool
      */

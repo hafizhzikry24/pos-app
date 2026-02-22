@@ -11,24 +11,58 @@ export interface Item {
     updated_at: string;
 }
 
+export interface CreateItemRequest {
+    name: string;
+    sku_code: string;
+    price: number;
+    is_active: boolean;
+    measure: string;
+}
+
+export interface UpdateItemRequest {
+    name?: string;
+    sku_code?: string;
+    price?: number;
+    is_active?: boolean;
+    measure?: string;
+}
+
+export interface PaginatedResponse<T> {
+    data: T[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+}
+
 export const itemService = {
-    getAll: async () => {
+    getAll: async (): Promise<Item[]> => {
         const response = await api.get<Item[]>("/items");
         return response.data;
     },
-    getById: async (id: number) => {
+
+    getPaginated: async (search?: string, page: number = 1, perPage: number = 10): Promise<PaginatedResponse<Item>> => {
+        const params = new URLSearchParams();
+        if (search) params.append('search', search);
+        params.append('page', page.toString());
+        params.append('per_page', perPage.toString());
+        
+        const response = await api.get<PaginatedResponse<Item>>(`/items?${params.toString()}`);
+        return response.data;
+    },
+    getById: async (id: number): Promise<Item> => {
         const response = await api.get<Item>(`/items/${id}`);
         return response.data;
     },
-    create: async (data: Partial<Item>) => {
+    create: async (data: CreateItemRequest): Promise<Item> => {
         const response = await api.post<Item>("/items", data);
         return response.data;
     },
-    update: async (id: number, data: Partial<Item>) => {
+    update: async (id: number, data: UpdateItemRequest): Promise<Item> => {
         const response = await api.put<Item>(`/items/${id}`, data);
         return response.data;
     },
-    delete: async (id: number) => {
+    delete: async (id: number): Promise<void> => {
         await api.delete(`/items/${id}`);
     },
 };

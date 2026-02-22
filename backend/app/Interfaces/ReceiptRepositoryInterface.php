@@ -14,6 +14,16 @@ interface ReceiptRepositoryInterface
     public function getAll();
 
     /**
+     * Get paginated receipts with search functionality
+     * 
+     * @param string|null $search
+     * @param string|null $date
+     * @param int $perPage
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     */
+    public function getPaginatedWithSearch(?string $search = null, ?string $date = null, int $perPage = 10);
+
+    /**
      * @param int $id
      * @return \App\Models\Receipt
      */
