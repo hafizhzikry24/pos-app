@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Receipt, receiptService, PaginatedResponse } from "@/services/receiptService";
-import { FileText, Eye, Package, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { FileText, Eye, Package, Search, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 export default function ReceiptListPage() {
     const [receipts, setReceipts] = useState<Receipt[]>([]);
     const [search, setSearch] = useState('');
+    const [date, setDate] = useState('');
     const { user, loading } = useAuth();
     const [currentPage, setCurrentPage] = useState(1);
     const [pagination, setPagination] = useState({
@@ -25,11 +26,11 @@ export default function ReceiptListPage() {
         if (!loading && !user) {
             router.push('/login');
         }
-        if (user) {
+        if (user && date) {
             setCurrentPage(1);
             fetchReceipts();
         }
-    }, [search, currentPage, user, loading, router]);
+    }, [search, date, currentPage, user, loading, router]);
 
 
     const handleViewReceipt = (receipt: Receipt) => {
@@ -47,7 +48,7 @@ export default function ReceiptListPage() {
 
     const fetchReceipts = async () => {
         try {
-            const data: PaginatedResponse<Receipt> = await receiptService.getPaginated(search, currentPage, 10);
+            const data: PaginatedResponse<Receipt> = await receiptService.getPaginated(search, date, currentPage, 10);
             setReceipts(data.data || []);
             setPagination({
                 current_page: data.current_page,
@@ -71,17 +72,29 @@ export default function ReceiptListPage() {
                 </div>
             </div>
 
-            {/* Search Bar */}
+            {/* Search and Filter Bar */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                <div className="relative max-w-md">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <input
-                        type="text"
-                        placeholder="Search by receipt number, cashier, or customer..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
-                    />
+                <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="relative flex-1 max-w-md">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <input
+                            type="text"
+                            placeholder="Search by receipt number, cashier, or customer..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                        />
+                    </div>
+                    <div className="relative">
+                        <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <input
+                            type="date"
+                            placeholder="Filter by date"
+                            value={date}
+                            onChange={(e) => setDate(e.target.value)}
+                            className="pl-10 pr-4 py-2 border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                        />
+                    </div>
                 </div>
             </div>
 
