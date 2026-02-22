@@ -43,6 +43,27 @@ class CustomerRepository implements CustomerRepositoryInterface
     }
 
     /**
+     * Get paginated customers with search functionality
+     * 
+     * @param string|null $search
+     * @param int $perPage
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     */
+    public function getPaginatedWithSearch(?string $search = null, int $perPage = 10)
+    {
+        $query = Customer::query();
+        
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'LIKE', "%{$search}%")
+                  ->orWhere('phone_number', 'LIKE', "%{$search}%");
+            });
+        }
+        
+        return $query->orderBy('name')->paginate($perPage);
+    }
+
+    /**
      * @param int $id
      * @return bool
      */

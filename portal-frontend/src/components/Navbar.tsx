@@ -1,6 +1,6 @@
 export function Navbar() {
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200 h-16 flex items-center px-6">
+    <header className="bg-slate-300 shadow-sm border-b border-gray-200 h-16 flex items-center px-6">
       
       {/* Title - only show on lg */}
       <h1 className="text-xl hidden lg:block font-semibold text-gray-800">

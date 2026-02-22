@@ -44,9 +44,27 @@ export interface EligibilityResponse {
     purchase_amount: number;
 }
 
+export interface PaginatedResponse<T> {
+    data: T[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+}
+
 export const freeItemService = {
     getAll: async (): Promise<FreeItem[]> => {
         const response = await api.get<FreeItem[]>('/free-items');
+        return response.data;
+    },
+
+    getPaginated: async (search?: string, page: number = 1, perPage: number = 10): Promise<PaginatedResponse<FreeItem>> => {
+        const params = new URLSearchParams();
+        if (search) params.append('search', search);
+        params.append('page', page.toString());
+        params.append('per_page', perPage.toString());
+        
+        const response = await api.get<PaginatedResponse<FreeItem>>(`/free-items?${params.toString()}`);
         return response.data;
     },
 

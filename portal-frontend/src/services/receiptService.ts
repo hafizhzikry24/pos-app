@@ -42,23 +42,40 @@ export interface Receipt {
     };
 }
 
+export interface PaginatedResponse<T> {
+    data: T[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+}
+
 export const receiptService = {
-    getAll: async () => {
+    getAll: async (): Promise<Receipt[]> => {
         const response = await api.get<Receipt[]>("/receipts");
         return response.data;
     },
-    getById: async (id: number, tableSuffix?: string) => {
+
+    getPaginated: async (search?: string, page: number = 1, perPage: number = 10): Promise<PaginatedResponse<Receipt>> => {
+        const params = new URLSearchParams();
+        if (search) params.append('search', search);
+        params.append('page', page.toString());
+        params.append('per_page', perPage.toString());
+        
+        const response = await api.get<PaginatedResponse<Receipt>>(`/receipts?${params.toString()}`);
+        return response.data;
+    },
+    getById: async (id: number, tableSuffix?: string): Promise<Receipt> => {
         const url = tableSuffix 
             ? `/receipts/${id}?table=${tableSuffix}`
             : `/receipts/${id}`;
         const response = await api.get<Receipt>(url);
         return response.data;
     },
-    delete: async (id: number, tableSuffix?: string) => {
+    delete: async (id: number, tableSuffix?: string): Promise<void> => {
         const url = tableSuffix 
             ? `/receipts/${id}?table=${tableSuffix}`
             : `/receipts/${id}`;
-        const response = await api.delete<any>(url);
-        return response.data;
+        await api.delete(url);
     },
 };

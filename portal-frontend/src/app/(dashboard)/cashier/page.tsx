@@ -1,14 +1,22 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { cashierService } from '@/services/cashier';
-import { Plus, Pencil, Trash2, Users } from 'lucide-react';
+import { cashierService, Cashier, PaginatedResponse } from '@/services/cashier';
+import { Plus, Pencil, Trash2, Users, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 export default function DashboardPage() {
-    const { user, logout, loading } = useAuth();
-    const [cashiers, setCashiers] = useState<any[]>([]);
+    const { user, loading } = useAuth();
+    const [cashiers, setCashiers] = useState<Cashier[]>([]);
+    const [search, setSearch] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pagination, setPagination] = useState({
+        current_page: 1,
+        last_page: 1,
+        per_page: 10,
+        total: 0
+    });
     const router = useRouter();
 
     useEffect(() => {
@@ -16,21 +24,28 @@ export default function DashboardPage() {
             router.push('/login');
         }
         if (user) {
+            setCurrentPage(1);
             loadCashiers();
         }
-    }, [user, loading, router]);
+    }, [user, loading, router, search, currentPage]);
 
     const loadCashiers = async () => {
         try {
-            const data = await cashierService.getAll();
-            setCashiers(data);
+            const data: PaginatedResponse<Cashier> = await cashierService.getPaginated(search, currentPage, 10);
+            setCashiers(data.data);
+            setPagination({
+                current_page: data.current_page,
+                last_page: data.last_page,
+                per_page: data.per_page,
+                total: data.total
+            });
         } catch (err) {
             console.error(err);
         }
     };
 
     const handleDelete = async (id: number) => {
-        if (confirm('Are you sure?')) {
+        if (confirm('Are you sure you want to delete this cashier?')) {
             await cashierService.delete(id);
             loadCashiers();
         }
@@ -53,6 +68,20 @@ export default function DashboardPage() {
                     <Plus className="w-4 h-4" />
                     Add Cashier
                 </Link>
+            </div>
+
+            {/* Search Bar */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                <div className="relative max-w-md">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <input
+                        type="text"
+                        placeholder="Search by name or email..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                    />
+                </div>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -107,7 +136,7 @@ export default function DashboardPage() {
                                         <div className="flex flex-col items-center gap-2">
                                             <Users className="w-8 h-8 text-gray-400 mb-2" />
                                             <p className="font-medium">No cashiers found</p>
-                                            <p className="text-sm">Get started by adding a new cashier.</p>
+                                            <p className="text-sm">Try adjusting your search or add a new cashier.</p>
                                         </div>
                                     </td>
                                 </tr>
@@ -116,6 +145,36 @@ export default function DashboardPage() {
                     </table>
                 </div>
             </div>
+
+            {/* Pagination */}
+            {pagination.last_page >= 1 && (
+                <div className="flex items-center justify-between bg-white px-4 py-3 border border-gray-200 rounded-lg shadow-sm">
+                    <div className="text-sm text-gray-700">
+                        Showing <span className="font-medium">{(pagination.current_page - 1) * pagination.per_page + 1}</span> to{' '}
+                        <span className="font-medium">{Math.min(pagination.current_page * pagination.per_page, pagination.total)}</span> of{' '}
+                        <span className="font-medium">{pagination.total}</span> results
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            disabled={pagination.current_page === 1}
+                            className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <ChevronLeft className="w-4 h-4 text-gray-900" />
+                        </button>
+                        <span className="text-sm text-gray-700 px-3">
+                            Page {pagination.current_page} of {pagination.last_page}
+                        </span>
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.min(pagination.last_page, prev + 1))}
+                            disabled={pagination.current_page === pagination.last_page}
+                            className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <ChevronRight className="w-4 h-4 text-gray-900" />
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

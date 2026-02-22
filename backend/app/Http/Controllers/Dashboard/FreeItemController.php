@@ -10,6 +10,7 @@ use App\Http\Requests\UpdateFreeItemRequest;
 use App\Http\Responses\MessageResponse;
 use Exception;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class FreeItemController extends Controller
 {
@@ -26,10 +27,13 @@ class FreeItemController extends Controller
     /**
      * @return JsonResponse
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         try {
-            $freeItems = $this->freeItemService->getAllFreeItems();
+            $search = $request->get('search');
+            $perPage = $request->get('per_page', 10);
+            
+            $freeItems = $this->freeItemService->getPaginatedWithSearch($search, $perPage);
             return MessageResponse::success($freeItems, 'Free items retrieved successfully');
         } catch (Exception $e) {
             return MessageResponse::serverError($e->getMessage());

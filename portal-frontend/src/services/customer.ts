@@ -18,9 +18,27 @@ export interface UpdateCustomerRequest {
     phone_number?: string;
 }
 
+export interface PaginatedResponse<T> {
+    data: T[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+}
+
 export const customerService = {
     getAll: async (): Promise<Customer[]> => {
         const response = await api.get<Customer[]>('/customers');
+        return response.data;
+    },
+
+    getPaginated: async (search?: string, page: number = 1, perPage: number = 10): Promise<PaginatedResponse<Customer>> => {
+        const params = new URLSearchParams();
+        if (search) params.append('search', search);
+        params.append('page', page.toString());
+        params.append('per_page', perPage.toString());
+        
+        const response = await api.get<PaginatedResponse<Customer>>(`/customers?${params.toString()}`);
         return response.data;
     },
 
