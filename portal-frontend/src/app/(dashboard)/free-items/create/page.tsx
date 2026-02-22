@@ -37,7 +37,9 @@ export default function CreateFreeItemPage() {
     const loadItems = async () => {
         try {
             const data = await itemService.getAll();
-            setItems(data.filter(item => item.is_active));
+            // Handle both array and paginated response
+            const itemsArray = Array.isArray(data) ? data : (data as any).data || [];
+            setItems(itemsArray.filter((item: Item) => item.is_active));
         } catch (err) {
             console.error(err);
         } finally {
@@ -180,7 +182,6 @@ export default function CreateFreeItemPage() {
                                 Required Purchase Amount *
                             </label>
                             <div className="relative">
-                                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                                 <input
                                     type="number"
                                     id="required_purchase_amount"
