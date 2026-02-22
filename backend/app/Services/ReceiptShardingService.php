@@ -271,54 +271,47 @@ class ReceiptShardingService
      * Get paginated receipts with search functionality from all tables.
      *
      * @param string|null $search
+     * @param string|null $date
      * @param int $perPage
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
-    public static function getPaginatedReceiptsWithSearch(?string $search = null, int $perPage = 10)
+    public static function getPaginatedReceiptsWithSearch(?string $search = null, ?string $date = null, int $perPage = 10)
     {
         $allReceipts = collect();
         
-        // First, get receipts from the original table
-        try {
-            $query = \App\Models\Receipt::with(['receiptItems', 'location', 'cashier', 'customer']);
-            
-            if ($search) {
-                $query->where(function($q) use ($search) {
-                    $q->where('number', 'LIKE', "%{$search}%")
-                      ->orWhereHas('cashier', function($subQ) use ($search) {
-                          $subQ->where('name', 'LIKE', "%{$search}%");
-                      })
-                      ->orWhereHas('customer', function($subQ) use ($search) {
-                          $subQ->where('name', 'LIKE', "%{$search}%");
-                      });
-                });
+        // If date is provided, determine which table(s) to search
+        if ($date) {
+            try {
+                $carbonDate = Carbon::parse($date);
+                $targetSuffix = $carbonDate->format('Ym');
+                
+                // Only search in the specific month's table
+                $suffixes = [$targetSuffix];
+                
+                // Also check original table if date is recent
+                if ($carbonDate->greaterThanOrEqualTo(Carbon::now()->subMonths(3))) {
+                    $suffixes[] = 'original';
+                }
+            } catch (\Exception $e) {
+                // If date parsing fails, use all tables
+                $suffixes = self::getAvailableTableSuffixes(24);
+                $suffixes[] = 'original';
             }
-            
-            $originalReceipts = $query->get();
-            
-            // Add table info to each receipt from original table
-            $originalReceipts->each(function ($receipt) {
-                $receipt->table_info = [
-                    'date' => 'original',
-                    'suffix' => 'original',
-                    'receipts_table' => 'receipts',
-                    'receipt_items_table' => 'receipt_items',
-                ];
-            });
-            
-            $allReceipts = $allReceipts->concat($originalReceipts);
-        } catch (\Exception $e) {
-            // Skip if original table has issues
+        } else {
+            // If no date filter, search all tables
+            $suffixes = self::getAvailableTableSuffixes(24);
+            $suffixes[] = 'original';
         }
-        
-        // Then, get receipts from sharded tables
-        $suffixes = self::getAvailableTableSuffixes(24); // Last 24 months
         
         foreach ($suffixes as $suffix) {
             try {
-                $date = Carbon::createFromFormat('Ym', $suffix);
-                $query = self::getReceiptsQuery($date)
-                    ->with(['receiptItems', 'location', 'cashier', 'customer']);
+                if ($suffix === 'original') {
+                    $query = \App\Models\Receipt::with(['receiptItems', 'location', 'cashier', 'customer']);
+                } else {
+                    $carbonDate = Carbon::createFromFormat('Ym', $suffix);
+                    $query = self::getReceiptsQuery($carbonDate)
+                        ->with(['receiptItems', 'location', 'cashier', 'customer']);
+                }
                 
                 if ($search) {
                     $query->where(function($q) use ($search) {
@@ -332,16 +325,35 @@ class ReceiptShardingService
                     });
                 }
                 
+                if ($date && $suffix !== 'original') {
+                    // For sharded tables, filter by date within that month
+                    $carbonDate = Carbon::createFromFormat('Ym', $suffix);
+                    $query->whereDate('created_at', $date);
+                } elseif ($date && $suffix === 'original') {
+                    // For original table, filter by date
+                    $query->whereDate('created_at', $date);
+                }
+                
                 $receipts = $query->get();
                 
-                // Add table info to each receipt from sharded table
-                $receipts->each(function ($receipt) use ($date, $suffix) {
-                    $receipt->table_info = [
-                        'date' => $date->format('Y-m'),
-                        'suffix' => $suffix,
-                        'receipts_table' => self::getReceiptsTableName($date),
-                        'receipt_items_table' => self::getReceiptItemsTableName($date),
-                    ];
+                // Add table info to each receipt
+                $receipts->each(function ($receipt) use ($suffix) {
+                    if ($suffix === 'original') {
+                        $receipt->table_info = [
+                            'date' => 'original',
+                            'suffix' => 'original',
+                            'receipts_table' => 'receipts',
+                            'receipt_items_table' => 'receipt_items',
+                        ];
+                    } else {
+                        $carbonDate = Carbon::createFromFormat('Ym', $suffix);
+                        $receipt->table_info = [
+                            'date' => $carbonDate->format('Y-m'),
+                            'suffix' => $suffix,
+                            'receipts_table' => self::getReceiptsTableName($carbonDate),
+                            'receipt_items_table' => self::getReceiptItemsTableName($carbonDate),
+                        ];
+                    }
                 });
                 
                 $allReceipts = $allReceipts->concat($receipts);
