@@ -11,7 +11,7 @@ use App\Http\Controllers\Dashboard\FreeItemController;
 use App\Http\Controllers\Dashboard\ReceiptController;
 
 Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
 
 Route::middleware('auth:api')->group(function () {
     Route::get('/user', function (Request $request) {
