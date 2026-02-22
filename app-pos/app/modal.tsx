@@ -32,6 +32,7 @@ export default function ModalScreen() {
   const [cashReceived, setCashReceived] = useState(0);
   const [eligibleFreeItems, setEligibleFreeItems] = useState<FreeItem[]>([]);
   const [selectedFreeItems, setSelectedFreeItems] = useState<number[]>([]);
+  const [selectedSelectableItems, setSelectedSelectableItems] = useState<{freeItemId: number, itemId: number}[]>([]);
   const [isLoadingFreeItems, setIsLoadingFreeItems] = useState(false);
   const [hasMember] = useState(!!memberId);
 
@@ -60,6 +61,7 @@ export default function ModalScreen() {
     } else {
       setEligibleFreeItems([]);
       setSelectedFreeItems([]);
+      setSelectedSelectableItems([]);
     }
   }, [hasMember, cart.length]); // Only depend on hasMember and cart.length, not totalAmount
 
@@ -87,11 +89,55 @@ export default function ModalScreen() {
   };
 
   const toggleFreeItem = (freeItemId: number) => {
-    setSelectedFreeItems(prev =>
-      prev.includes(freeItemId)
-        ? prev.filter(id => id !== freeItemId)
-        : [...prev, freeItemId]
-    );
+    const freeItem = eligibleFreeItems.find(item => item.id === freeItemId);
+    
+    if (!freeItem || !freeItem.selectable_items || freeItem.selectable_items.length === 0) {
+      console.log('No selectable items found for free item:', freeItemId);
+      return;
+    }
+    
+    // Check if any items from this free item are currently selected
+    const hasSelectedItems = selectedSelectableItems.some(item => item.freeItemId === freeItemId);
+    
+    if (hasSelectedItems) {
+      // Remove all items from this free item
+      setSelectedSelectableItems(prev => prev.filter(item => item.freeItemId !== freeItemId));
+      setSelectedFreeItems(prev => prev.filter(id => id !== freeItemId));
+    } else {
+      // Add ALL selectable items
+      console.log('Adding ALL items to free item:', freeItemId);
+      const allItems = freeItem.selectable_items.map(item => ({ freeItemId, itemId: item.id }));
+      console.log('Items to add:', allItems);
+      setSelectedSelectableItems(prev => [...prev, ...allItems]);
+      setSelectedFreeItems(prev => [...prev, freeItemId]);
+    }
+  };
+
+  const toggleSelectableItem = (freeItemId: number, itemId: number) => {
+    setSelectedSelectableItems(prev => {
+      const exists = prev.some(item => item.freeItemId === freeItemId && item.itemId === itemId);
+      let newSelection;
+      if (exists) {
+        newSelection = prev.filter(item => !(item.freeItemId === freeItemId && item.itemId === itemId));
+      } else {
+        newSelection = [...prev, { freeItemId, itemId }];
+      }
+            
+      // Also update selectedFreeItems - if there are any selectable items selected, add the free item
+      const hasSelectedItems = newSelection.some(item => item.freeItemId === freeItemId);
+      setSelectedFreeItems(prevFreeItems => {
+        if (hasSelectedItems && !prevFreeItems.includes(freeItemId)) {
+          const updated = [...prevFreeItems, freeItemId];
+          return updated;
+        } else if (!hasSelectedItems && prevFreeItems.includes(freeItemId)) {
+          const updated = prevFreeItems.filter(id => id !== freeItemId);
+          return updated;
+        }
+        return prevFreeItems;
+      });
+      
+      return newSelection;
+    });
   };
 
 
@@ -119,13 +165,14 @@ export default function ModalScreen() {
 
       const receiptNumber = `RCP-${Date.now()}`;
 
-      // Debug: Log the current state
-      console.log('=== Debug Info ===');
-      console.log('Cart:', cart);
-      console.log('Selected Free Items:', selectedFreeItems);
-      console.log('Eligible Free Items:', eligibleFreeItems);
-      console.log('Has Member:', hasMember);
-      console.log('Member ID:', memberId);
+      // // Debug: Log the current state
+      // console.log('=== Debug Info ===');
+      // console.log('Cart:', cart);
+      // console.log('Selected Free Items:', selectedFreeItems);
+      // console.log('Selected Selectable Items:', selectedSelectableItems);
+      // console.log('Eligible Free Items:', eligibleFreeItems);
+      // console.log('Has Member:', hasMember);
+      // console.log('Member ID:', memberId);
 
       const receiptData: ReceiptData = {
         number: receiptNumber,
@@ -150,25 +197,28 @@ export default function ModalScreen() {
             is_free_item: false
           })),
           // Add selected free items
-          ...selectedFreeItems.map((freeItemId: number) => {
-            const freeItem = eligibleFreeItems.find(item => item.id === freeItemId);
-            const selectableItem = freeItem?.selectable_items?.[0]; // Get first selectable item
+          ...selectedSelectableItems.map((selection: {freeItemId: number, itemId: number}) => {
+            const freeItem = eligibleFreeItems.find(item => item.id === selection.freeItemId);
+            const selectableItem = freeItem?.selectable_items?.find(item => item.id === selection.itemId);
             
-            return {
-              item_id: selectableItem?.id || 0, // Use the actual selectable item ID
-              name: selectableItem?.name || freeItem?.name || 'Free Item', // Use selectable item name first
+            const freeItemData = {
+              item_id: selectableItem?.id || 0,
+              name: selectableItem?.name || freeItem?.name || 'Free Item',
               quantity: 1,
               price: 0,
               discount: 0,
               total: 0,
               is_free_item: true
             };
+            
+            console.log('Creating free item:', freeItemData);
+            return freeItemData;
           })
         ]
       };
 
-      console.log('Final receipt data:', receiptData);
-      console.log('===================');
+      // console.log('Final receipt data:', receiptData);
+      // console.log('===================');
 
       await receiptService.create(receiptData);
 
@@ -304,6 +354,30 @@ export default function ModalScreen() {
                   <Text style={styles.freeItemDescription}>
                     {freeItem.description || 'Special free item offer'}
                   </Text>
+                  <View style={styles.selectableItemsContainer}>
+                    <Text style={styles.selectableItemsTitle}>Choose items:</Text>
+                    {freeItem.selectable_items?.map((item: any) => {
+                      const isSelected = selectedSelectableItems.some(
+                        selection => selection.freeItemId === freeItem.id && selection.itemId === item.id
+                      );
+                      return (
+                        <TouchableOpacity
+                          key={item.id}
+                          style={styles.selectableItemRow}
+                          onPress={() => toggleSelectableItem(freeItem.id, item.id)}
+                        >
+                          <View style={styles.selectableItemCheckbox}>
+                            {isSelected && (
+                              <Ionicons name="checkmark-circle" size={16} color="#2563eb" />
+                            )}
+                          </View>
+                          <Text style={styles.selectableItemName}>
+                            {item.name}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
                   <Text style={styles.freeItemRequirement}>
                     Required: RP {freeItem.required_purchase_amount.toLocaleString('id-ID')}
                   </Text>
@@ -567,6 +641,36 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#2563eb',
     fontWeight: '500',
+  },
+  selectableItemsContainer: {
+    marginVertical: 8,
+    backgroundColor: '#f8fafc',
+    padding: 8,
+    borderRadius: 6,
+  },
+  selectableItemsTitle: {
+    fontSize: 11,
+    color: '#64748b',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  selectableItemName: {
+    fontSize: 11,
+    color: '#475569',
+    marginBottom: 2,
+  },
+  selectableItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    backgroundColor: 'white',
+    borderRadius: 4,
+    marginBottom: 4,
+  },
+  selectableItemCheckbox: {
+    marginRight: 8,
+    padding: 2,
   },
   numpad: {},
 });
